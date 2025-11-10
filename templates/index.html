@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2-Point Discrimination Generator</title>
+
+  <!-- Bootstrap for clean styling -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #fafafa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      color: #333;
+    }
+    .card {
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      background: #fff;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 25px;
+    }
+    #loading {
+      display: none;
+      color: #0066cc;
+      font-style: italic;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h2>🧠 Generate Your 2-Point Discrimination Wheel</h2>
+
+    <form method="POST" onsubmit="showLoading()">
+      <label class="form-label">Enter distances in mm (comma-separated):</label>
+      <input type="text" class="form-control mb-3" name="distances"
+             value="2,4,6,8,10,15,20,25" required>
+      <button type="submit" class="btn btn-primary">Generate STL</button>
+    </form>
+
+    <p id="loading">⏳ Generating your STL file... please wait.</p>
+  </div>
+
+  <script>
+    function showLoading() {
+      document.getElementById("loading").style.display = "block";
+    }
+  </script>
+</body>
+</html>
