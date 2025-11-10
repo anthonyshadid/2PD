@@ -51,7 +51,7 @@ struct ContentView: View {
             .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
 
         do {
-            let url = try generateTwoPDWheelSTL(distancesMM: distances)
+            let url = try generateSCADCompatSTL(distancesMM: distances)
             shareURL = url
             showShare = true
         } catch {
