@@ -1,36 +1,45 @@
-import json, os, shutil, subprocess
-from datetime import datetime
+import os, shutil, subprocess, tempfile
 from pathlib import Path
 
-# -------------- Configuration --------------
-OPENSCAD_PATH = "/Applications/OpenScad.app/Contents/MacOS/OpenSCAD"
-SCAD_FILENAME = "discriminator.scad"
+# -------------- Config --------------
+SCAD_BASENAME = "discriminator.scad"
 
-# -------------- Core functions --------------
-def find_openscad(path=OPENSCAD_PATH):
-    exe = Path(path)
-    if exe.exists():
-        return str(exe)
-    raise FileNotFoundError(f"OpenSCAD not found at: {path}")
+# -------------- Helpers --------------
+def find_openscad() -> str:
+    """Locate openscad binary on PATH in the container."""
+    path = shutil.which("openscad")
+    if not path:
+        raise FileNotFoundError("OpenSCAD not on PATH")
+    return path
 
-def write_scad():
-    scad_source = """
+def _tmpfile(suffix: str) -> str:
+    """Create a named temp file in /tmp and return its path (not deleted)."""
+    f = tempfile.NamedTemporaryFile(dir="/tmp", suffix=suffix, delete=False)
+    f.close()
+    return f.name
+
+# -------------- SCAD writer --------------
+def write_scad(scad_path: str) -> str:
+    scad_source = r"""
 // 2-Point Discrimination Wheel — parametric n-gon, clockwise order
 distances_mm       = is_undef(distances_mm) ? [2,4,6,8,10,15,20,25] : distances_mm;
 outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 63.5 : outer_flat_to_flat;
 base_thickness     = is_undef(base_thickness) ? 3.0 : base_thickness;
+
 spike_length  = is_undef(spike_length) ? 14 : spike_length;
 base_d        = is_undef(base_d) ? 3 : base_d;
 shank_d       = is_undef(shank_d) ? 1.4 : shank_d;
 tip_d         = is_undef(tip_d) ? 0.6 : tip_d;
 root_overlap  = is_undef(root_overlap) ? 0.7 : root_overlap;
+
 label_size    = is_undef(label_size) ? 3 : label_size;
 label_depth   = is_undef(label_depth) ? 0.5 : label_depth;
 font_name     = is_undef(font_name) ? "DejaVu Sans:style=Bold" : font_name;
 label_radial  = is_undef(label_radial) ? 0.80 : label_radial;
+
 hub_diameter  = is_undef(hub_diameter) ? 20 : hub_diameter;
 thumb_depth   = is_undef(thumb_depth) ? 0.5 : thumb_depth;
-chamfer = is_undef(chamfer) ? 0.8 : chamfer;
+chamfer       = is_undef(chamfer) ? 0.8 : chamfer;
 $fn = is_undef($fn) ? 72 : $fn;
 
 module soft_chamfer(h=chamfer){
@@ -108,37 +117,42 @@ module discriminator(distances){
 
 discriminator(distances_mm);
 """
-    Path(SCAD_FILENAME).write_text(scad_source)
-    return SCAD_FILENAME
+    Path(scad_path).write_text(scad_source)
+    return scad_path
 
-def generate_wheel_stl(distances, output_stl="wheel.stl"):
-    scad = write_scad()
-    openscad = find_openscad()
-    dlist = "[" + ",".join(str(x) for x in distances) + "]"
-    cmd = [
-        openscad, "-o", output_stl,
-        "-D", f"distances_mm={dlist}",
-        scad
-    ]
+# -------------- Public API --------------
+def generate_wheel_stl(distances, output_stl: str | None = None) -> str:
+    """
+    Generates an STL in /tmp and returns the path.
+    distances: list of numbers (e.g., [2,4,6,8,10,15,20,25])
+    output_stl: optional full path; if None, a temp file in /tmp is used.
+    """
+    openscad_bin = find_openscad()
+
+    scad_path = _tmpfile(".scad")
+    write_scad(scad_path)
+
+    stl_path = output_stl or _tmpfile(".stl")
+
+    dlist = "[" + ",".join(str(float(x)) for x in distances) + "]"
+
+    # Run headless; capture output for debugging
+    cmd = ["xvfb-run", "-a", openscad_bin, "-o", stl_path, "-D", f"distances_mm={dlist}", scad_path]
     print("Running:", " ".join(cmd))
-    subprocess.check_call(cmd)
-    print(f"✅ Wrote {output_stl}")
+    proc = subprocess.run(cmd, capture_output=True, text=True)
 
-# -------------- Run automatically --------------
+    if proc.returncode != 0:
+        raise RuntimeError(f"OpenSCAD failed ({proc.returncode}).\nSTDERR:\n{proc.stderr}\nSTDOUT:\n{proc.stdout}")
+
+    if not Path(stl_path).exists() or Path(stl_path).stat().st_size == 0:
+        raise RuntimeError("OpenSCAD finished but STL not created or empty.")
+
+    print(f"✅ Wrote {stl_path}")
+    return stl_path
+
+# -------------- CLI (local use) --------------
 if __name__ == "__main__":
-    print("\n🧠 Enter your distances in millimeters (comma-separated):")
-    raw = input("Example: 2,4,6,8,10,15,20,25\n> ")
-
-    # Parse numbers safely
-    distances = [float(x.strip()) for x in raw.split(",") if x.strip()]
-
-    # Generate unique filename with timestamp
-    from datetime import datetime
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    filename = f"wheel_{'-'.join(str(int(x)) if x.is_integer() else str(x) for x in distances)}_{ts}.stl"
-
-    # Run the generator
-    generate_wheel_stl(
-        distances,
-        output_stl=filename
-    )
+    raw = input("Enter distances (e.g., 2,4,6,8,10,15,20,25):\n> ").strip()
+    distances = [float(x) for x in raw.split(",") if x.strip()]
+    path = generate_wheel_stl(distances)
+    print("STL:", path)
