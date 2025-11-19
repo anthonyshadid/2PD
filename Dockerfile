@@ -6,11 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive
 
-# Install OpenSCAD (CLI) + xvfb (for xvfb-run) and clean up apt cache
+# Install OpenSCAD + xvfb + xauth (required for xvfb-run)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         openscad \
         xvfb \
+        xauth \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
@@ -24,5 +25,5 @@ COPY . .
 ENV PORT=10000
 EXPOSE 10000
 
-# Start Flask via Gunicorn; change app:app if your module or variable differs
+# Start Flask via Gunicorn
 CMD gunicorn -w 2 -b 0.0.0.0:$PORT app:app
