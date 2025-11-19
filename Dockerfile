@@ -6,9 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive
 
-# Install OpenSCAD (CLI) and clean up apt cache
+# Install OpenSCAD (CLI) + xvfb (for xvfb-run) and clean up apt cache
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends openscad ca-certificates && \
+    apt-get install -y --no-install-recommends \
+        openscad \
+        xvfb \
+        ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # App setup
