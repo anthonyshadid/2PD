@@ -370,52 +370,67 @@
     }
 
     function show3DPreviewFromBlob(blob){
-      initViewer();
+  // SHOW THE PANEL FIRST
+  viewerWrap.style.display = "block";
 
-      const loader = new THREE.STLLoader();
-      const fr = new FileReader();
-      fr.onload = (e)=>{
-        const geom = loader.parse(e.target.result);
+  // WAIT ONE FRAME so the browser recalculates layout
+  requestAnimationFrame(() => {
 
-        // cleanup old mesh
-        if (currentMesh){
-          scene.remove(currentMesh);
-          currentMesh.geometry.dispose();
-          currentMesh.material.dispose();
-        }
+    initViewer();  // safe to run now — canvas has real size
 
-        // center & scale to fit
-        geom.computeBoundingBox();
-        const box = geom.boundingBox;
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
+    const loader = new THREE.STLLoader();
+    const fr = new FileReader();
+    fr.onload = (e) => {
+      const geom = loader.parse(e.target.result);
 
-        geom.translate(-center.x, -center.y, -center.z);
+      // Remove old mesh
+      if (currentMesh){
+        scene.remove(currentMesh);
+        currentMesh.geometry.dispose();
+        currentMesh.material.dispose();
+      }
 
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 70 / maxDim; // fit nicely in view
-        const material = new THREE.MeshStandardMaterial({
-          color: 0xdde3ea,
-          metalness: 0.15,
-          roughness: 0.6
-        });
+      // Center geometry
+      geom.computeBoundingBox();
+      const box = geom.boundingBox;
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      geom.translate(-center.x, -center.y, -center.z);
 
-        currentMesh = new THREE.Mesh(geom, material);
-        currentMesh.scale.setScalar(scale);
-        scene.add(currentMesh);
+      // Scale to fit
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 70 / maxDim;
 
-        // reset camera to a good angle
-        camera.position.set(0, -90, 90);
-        camera.lookAt(0,0,0);
-        controls.target.set(0,0,0);
-        controls.update();
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xdde3ea,
+        metalness: 0.15,
+        roughness: 0.6
+      });
 
-        viewerWrap.style.display = "block";
-      };
-      fr.readAsArrayBuffer(blob);
-    }
+      currentMesh = new THREE.Mesh(geom, material);
+      currentMesh.scale.setScalar(scale);
+      scene.add(currentMesh);
+
+      // Reset camera
+      camera.position.set(0, -90, 90);
+      camera.lookAt(0,0,0);
+      controls.target.set(0,0,0);
+      controls.update();
+
+      // FORCE RESIZE NOW THAT IT'S VISIBLE
+      const w = viewerCanvas.clientWidth;
+      const h = viewerCanvas.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    fr.readAsArrayBuffer(blob);
+  });
+}
+
+
 
     // ---------- generate ----------
     btn.addEventListener('click', async ()=>{
