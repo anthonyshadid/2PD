@@ -11,8 +11,15 @@ def index():
 
 @app.post("/generate")
 def generate():
-    # accept either key just in case
-    distances_str = request.form.get("distances_mm") or request.form.get("distances") or ""
+    # Allow JSON or form POST
+    data = request.get_json(silent=True) or {}
+    distances_str = (
+        data.get("distances") or
+        request.form.get("distances_mm") or
+        request.form.get("distances") or
+        ""
+    )
+
     try:
         distances = [float(x.strip()) for x in distances_str.split(",") if x.strip()]
     except ValueError:
@@ -34,10 +41,10 @@ def generate():
 
     return send_file(
         output_path,
-        as_attachment=True,
-        download_name="2pd_wheel.stl",
+        as_attachment=False,   # <-- REQUIRED FOR PREVIEW
         mimetype="model/stl"
     )
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=False)
