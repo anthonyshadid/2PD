@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2-Point Discrimination Device</title>
 
+  <!-- Three.js viewer deps (UMD builds) -->
+  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/loaders/STLLoader.js"></script>
+
   <style>
     :root{
       --bg: #0b1020;
@@ -227,11 +232,9 @@
     </div>
   </main>
 
-  <script type="module">
-  import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
-  import { OrbitControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js";
-  import { STLLoader } from "https://unpkg.com/three@0.161.0/examples/jsm/loaders/STLLoader.js";
-
+  <script>
+    // If this log doesn't show in console, your script isn't running.
+    console.log("index.html script loaded");
 
     const input = document.getElementById('distances');
     const btn = document.getElementById('generateBtn');
@@ -325,8 +328,13 @@
     function initViewer(){
       if (renderer) return;
 
+      if (!window.THREE || !THREE.STLLoader || !THREE.OrbitControls){
+        setStatus("bad", "3D libraries failed to load. Hard refresh the page.");
+        console.error("Three/Loader missing:", window.THREE, THREE?.STLLoader, THREE?.OrbitControls);
+        return;
+      }
+
       scene = new THREE.Scene();
-      scene.background = null;
 
       const w = viewerDiv.clientWidth;
       const h = viewerDiv.clientHeight;
@@ -340,7 +348,7 @@
       viewerDiv.innerHTML = "";
       viewerDiv.appendChild(renderer.domElement);
 
-      controls = new OrbitControls(camera, renderer.domElement);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
 
@@ -372,8 +380,9 @@
 
       requestAnimationFrame(() => {
         initViewer();
+        if (!renderer) return;
 
-        const loader = new STLLoader();
+        const loader = new THREE.STLLoader();
         const fr = new FileReader();
         fr.onload = (e) => {
           const geom = loader.parse(e.target.result);
@@ -408,7 +417,6 @@
           controls.target.set(0,0,0);
           controls.update();
 
-          // force correct sizing now that visible
           const w = viewerDiv.clientWidth;
           const h = viewerDiv.clientHeight;
           camera.aspect = w / h;
@@ -429,11 +437,10 @@
       if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
 
       try {
-        const res = await fetch("/generate", {
-          method:"POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ distances: values.join(",") })
-        });
+        const formData = new FormData();
+        formData.append("distances_mm", values.join(','));
+
+        const res = await fetch("/generate", { method:"POST", body:formData });
 
         if (!res.ok){
           let msg = "Generation failed.";
@@ -463,6 +470,7 @@
         show3DPreviewFromBlob(blob);
 
       } catch (err){
+        console.error(err);
         setStatus("bad", "Network error. Please try again.");
       } finally{
         setLoading(false);
