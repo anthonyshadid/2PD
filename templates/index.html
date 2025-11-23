@@ -134,6 +134,48 @@
       margin-top:14px; text-align:center; color:var(--muted); font-size:0.85rem;
     }
 
+    /* ---- preset instant downloads ---- */
+    .preset-downloads{
+      margin-top:14px;
+      padding:12px;
+      border-radius:14px;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      display:grid;
+      gap:8px;
+    }
+    .preset-downloads .title{
+      font-weight:700;
+      font-size:0.95rem;
+      color:#0f172a;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .preset-downloads .hint{
+      font-weight:500;
+      font-size:0.85rem;
+      color:var(--muted);
+    }
+    a.preset-btn{
+      width:100%;
+      padding:12px 14px;
+      font-size:0.98rem;
+      font-weight:700;
+      border-radius:12px;
+      text-decoration:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      background:#0f172a;
+      color:white;
+      transition: background .12s ease, transform .05s ease, opacity .12s ease;
+    }
+    a.preset-btn:hover{ background:#111827; }
+    a.preset-btn:active{ transform: translateY(1px); }
+
     /* ---- 3D preview panel ---- */
     .viewer-wrap{
       margin-top:16px;
@@ -176,11 +218,27 @@
     </div>
 
     <div class="subtitle">
-      Generates an STL file that can be used to 3D print a cheaper, accessible, fully customizable
-      2-Point Discrimination Device.
+      Download standard preset STL files instantly, or generate a fully custom wheel below.
     </div>
 
-    <label for="distances">Distances in millimeters</label>
+    <!-- Instant download presets -->
+    <div class="preset-downloads" aria-label="preset downloads">
+      <div class="title">
+        Preset wheels (instant download)
+        <span class="hint">No generation needed</span>
+      </div>
+      <a class="preset-btn" href="/static/presets/standard_preset.stl" download>
+        Download Standard Preset (2,4,6,8,10,15,20,25)
+      </a>
+      <a class="preset-btn" href="/static/presets/fine_preset.stl" download>
+        Download Fine Preset (1–8mm)
+      </a>
+      <a class="preset-btn" href="/static/presets/broad_preset.stl" download>
+        Download Broad Preset (5–30mm)
+      </a>
+    </div>
+
+    <label for="distances" style="margin-top:18px;">Custom distances in millimeters</label>
     <div class="input-wrap">
       <input id="distances" type="text" inputmode="decimal"
              placeholder="e.g., 2, 4, 6, 8, 10, 15, 20, 25"
@@ -193,9 +251,9 @@
     </div>
 
     <div class="chips" aria-label="presets">
-      <div class="chip" data-preset="2,4,6,8,10,15,20,25">Standard 8-step</div>
-      <div class="chip" data-preset="1,2,3,4,5,6,7,8">Fine (1–8mm)</div>
-      <div class="chip" data-preset="5,8,10,12,15,20,25,30">Coarse (5–30mm)</div>
+      <div class="chip" data-preset="2,4,6,8,10,15,20,25">Load Standard into custom</div>
+      <div class="chip" data-preset="1,2,3,4,5,6,7,8">Load Fine into custom</div>
+      <div class="chip" data-preset="5,8,10,12,15,20,25,30">Load Broad into custom</div>
       <div class="chip" data-preset="">Clear</div>
     </div>
 
@@ -211,10 +269,10 @@
 
     <div class="actions">
       <button id="generateBtn">
-        <span id="btnText">Generate STL</span>
+        <span id="btnText">Generate Custom STL</span>
       </button>
       <button id="downloadBtn" class="secondary" style="display:none;">
-        Download STL
+        Download Custom STL
       </button>
     </div>
 
@@ -298,6 +356,7 @@
     input.addEventListener('input', updateUI);
     updateUI();
 
+    // only chips load values into custom input
     document.querySelectorAll('.chip').forEach(chip=>{
       chip.addEventListener('click', ()=>{
         input.value = chip.dataset.preset;
@@ -317,7 +376,7 @@
       } else {
         const sp = document.getElementById('spinner');
         if (sp) sp.remove();
-        btnText.textContent = "Generate STL";
+        btnText.textContent = "Generate Custom STL";
         updateUI();
       }
     }
@@ -427,7 +486,7 @@
       });
     }
 
-    // ---------- Generate ----------
+    // ---------- Generate custom ----------
     btn.addEventListener('click', async ()=>{
       const {values, errors} = parseDistances(input.value);
       if (errors.length) return;
@@ -456,12 +515,12 @@
         const url = URL.createObjectURL(blob);
         lastBlobUrl = url;
 
-        setStatus("good", "STL generated successfully.");
+        setStatus("good", "Custom STL generated successfully.");
         downloadBtn.style.display = "block";
         downloadBtn.onclick = ()=> {
           const a = document.createElement('a');
           a.href = url;
-          a.download = "2pd_wheel.stl";
+          a.download = "2pd_wheel_custom.stl";
           document.body.appendChild(a);
           a.click();
           a.remove();
