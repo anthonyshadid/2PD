@@ -1,19 +1,19 @@
 
 // 2-Point Discrimination Wheel — parametric n-gon, clockwise order
-distances_mm       = is_undef(distances_mm) ? [2,4,6,8,10,15,20,25] : distances_mm;
-outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 63.5 : outer_flat_to_flat;
-base_thickness     = is_undef(base_thickness) ? 3.0 : base_thickness;
-spike_length  = is_undef(spike_length) ? 14 : spike_length;
+distances_mm       = is_undef(distances_mm) ? [1,2,3,4,5,6,7,8] : distances_mm;
+outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 60 : outer_flat_to_flat;
+base_thickness     = is_undef(base_thickness) ? 1.5 : base_thickness;
+spike_length  = is_undef(spike_length) ? 13 : spike_length;
 base_d        = is_undef(base_d) ? 3 : base_d;
 shank_d       = is_undef(shank_d) ? 1.4 : shank_d;
-tip_d         = is_undef(tip_d) ? 0.6 : tip_d;
+tip_d         = is_undef(tip_d) ? 0.2 : tip_d;
 root_overlap  = is_undef(root_overlap) ? 0.7 : root_overlap;
 label_size    = is_undef(label_size) ? 3 : label_size;
-label_depth   = is_undef(label_depth) ? 0.5 : label_depth;
+label_depth   = is_undef(label_depth) ? 1 : label_depth;
 font_name     = is_undef(font_name) ? "DejaVu Sans:style=Bold" : font_name;
 label_radial  = is_undef(label_radial) ? 0.80 : label_radial;
 hub_diameter  = is_undef(hub_diameter) ? 20 : hub_diameter;
-thumb_depth   = is_undef(thumb_depth) ? 0.5 : thumb_depth;
+thumb_depth   = is_undef(thumb_depth) ? 1 : thumb_depth;
 chamfer = is_undef(chamfer) ? 0.8 : chamfer;
 $fn = is_undef($fn) ? 72 : $fn;
 
@@ -26,11 +26,11 @@ function circ_radius(across_flats,n)=across_flats/(2*cos(180/n));
 function total_thickness()=base_thickness+max(chamfer,0);
 
 module polygon_plate(n, across_flats, thk){
-  r=circ_radius(across_flats,n);
-  soft_chamfer()
-    linear_extrude(thk)
-      polygon(points=[for(i=[0:n-1]) let(a=360*i/n)[r*cos(a),r*sin(a)]]);
+  r = circ_radius(across_flats,n);
+  linear_extrude(thk)
+    polygon(points=[for(i=[0:n-1]) let(a=360*i/n)[r*cos(a), r*sin(a)]]);
 }
+
 
 module spike_single_flat(len=spike_length,bd=base_d,sd=shank_d,td=tip_d){
   base_r=bd/2; shank_r=sd/2; tip_r=td/2;
