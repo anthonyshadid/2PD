@@ -228,22 +228,22 @@
         Preset wheels (instant download)
         <span class="hint">No generation needed</span>
       </div>
-      <a class="preset-btn" href="/static/presets/standard_preset.stl" download>
-        Download Standard Preset (2,4,6,8,10,15,20,25)
-      </a>
+
       <a class="preset-btn" href="/static/presets/fine_preset.stl" download>
         Download Fine Preset (1–8mm)
       </a>
+
       <a class="preset-btn" href="/static/presets/broad_preset.stl" download>
-        Download Broad Preset (5–30mm)
+        Download Broad Preset (10-24mm)
       </a>
     </div>
+
 
     <label for="distances" style="margin-top:18px;">Custom distances in millimeters</label>
     <div class="input-wrap">
       <input id="distances" type="text" inputmode="decimal"
-             placeholder="e.g., 2, 4, 6, 8, 10, 15, 20, 25"
-             value="2,4,6,8,10,15,20,25" />
+        placeholder="e.g., 1,2,3,4,5,6,7,8 or 10,12,14,16,18,20,22,24"
+        value="1,2,3,4,5,6,7,8" />
     </div>
 
     <div class="helper">
@@ -252,11 +252,11 @@
     </div>
 
     <div class="chips" aria-label="presets">
-      <div class="chip" data-preset="2,4,6,8,10,15,20,25">Load Standard into custom</div>
       <div class="chip" data-preset="1,2,3,4,5,6,7,8">Load Fine into custom</div>
-      <div class="chip" data-preset="5,8,10,12,15,20,25,30">Load Broad into custom</div>
+      <div class="chip" data-preset="10,12,14,16,18,20,22,24">Load Broad into custom</div>
       <div class="chip" data-preset="">Clear</div>
     </div>
+
 
     <div class="preview" role="status" aria-live="polite">
       <div>
