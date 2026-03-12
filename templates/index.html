@@ -316,7 +316,6 @@
 
       if (parts.length === 0) errors.push("Enter at least two distances.");
       if (nums.some(n => Number.isNaN(n))) errors.push("Only numbers are allowed.");
-      if (nums.some(n => n <= 0)) errors.push("Distances must be > 0.");
       if (nums.some(n => n > 30)) errors.push("Max allowed distance is 30mm.");
 
       const rounded = nums.map(n => Math.round(n*1000)/1000);
