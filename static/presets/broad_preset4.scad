@@ -1,6 +1,6 @@
 // 2-Point Discrimination Wheel — parametric n-gon, COUNTERclockwise order + split thickness
 
-distances_mm       = is_undef(distances_mm) ? [0,2,3,4,5,6,7,8] : distances_mm;
+distances_mm       = is_undef(distances_mm) ? [0,9,10,11,12,13,14,15] : distances_mm;
 
 // --- geometry ---
 outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 40 : outer_flat_to_flat;
@@ -19,7 +19,7 @@ label_depth   = is_undef(label_depth) ? .3 : label_depth;
 font_name     = is_undef(font_name) ? "DejaVu Sans:style=Bold" : font_name;
 label_radial  = is_undef(label_radial) ? 0.80 : label_radial;
 hub_diameter  = is_undef(hub_diameter) ? 17 : hub_diameter;
-thumb_depth   = is_undef(thumb_depth) ? .5 : thumb_depth;
+thumb_depth   = is_undef(thumb_depth) ? .7 : thumb_depth;
 
 // optional (you weren’t actually applying it anywhere)
 chamfer = is_undef(chamfer) ? 0.8 : chamfer;

@@ -1,35 +1,29 @@
-// 2-Point Discrimination Wheel — parametric n-gon, COUNTERclockwise order + split thickness
 
+// 2-Point Discrimination Wheel — parametric n-gon, clockwise order
 distances_mm       = is_undef(distances_mm) ? [0,2,3,4,5,6,7,8] : distances_mm;
-
-// --- geometry ---
-outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 40 : outer_flat_to_flat;
-body_thickness     = is_undef(body_thickness) ? 3 : body_thickness;   // <-- NEW: octagon thickness
-prong_thickness    = is_undef(prong_thickness) ? 1.4 : prong_thickness; // <-- NEW: prong thickness
-
-spike_length  = is_undef(spike_length) ? 7 : spike_length;
+outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 45 : outer_flat_to_flat;
+base_thickness     = is_undef(base_thickness) ? 1.4 : base_thickness;
+spike_length  = is_undef(spike_length) ? 9 : spike_length;
 base_d        = is_undef(base_d) ? 3 : base_d;
 shank_d       = is_undef(shank_d) ? 1.4 : shank_d;
 tip_d         = is_undef(tip_d) ? 0.15 : tip_d;
 root_overlap  = is_undef(root_overlap) ? .7 : root_overlap;
-
-// --- labels / hub ---
 label_size    = is_undef(label_size) ? 2.5 : label_size;
 label_depth   = is_undef(label_depth) ? .3 : label_depth;
 font_name     = is_undef(font_name) ? "DejaVu Sans:style=Bold" : font_name;
 label_radial  = is_undef(label_radial) ? 0.80 : label_radial;
 hub_diameter  = is_undef(hub_diameter) ? 17 : hub_diameter;
-thumb_depth   = is_undef(thumb_depth) ? .5 : thumb_depth;
-
-// optional (you weren’t actually applying it anywhere)
+thumb_depth   = is_undef(thumb_depth) ? 1.2 : thumb_depth;
 chamfer = is_undef(chamfer) ? 0.8 : chamfer;
 $fn = is_undef($fn) ? 72 : $fn;
 
+module soft_chamfer(h=chamfer){
+  if (h>0) minkowski(){ children(); cylinder(h=h,r1=h,r2=0,$fn=24); }
+  else children();
+}
 function apothem(across_flats,n)=across_flats/2;
 function circ_radius(across_flats,n)=across_flats/(2*cos(180/n));
-
-// Use BODY thickness for anything “top referenced”
-function total_thickness()=body_thickness + max(chamfer,0);
+function total_thickness()=base_thickness+max(chamfer,0);
 
 module polygon_plate(n, across_flats, thk){
   r = circ_radius(across_flats,n);
@@ -37,12 +31,11 @@ module polygon_plate(n, across_flats, thk){
     polygon(points=[for(i=[0:n-1]) let(a=360*i/n)[r*cos(a), r*sin(a)]]);
 }
 
+
 module spike_single_flat(len=spike_length,bd=base_d,sd=shank_d,td=tip_d){
   base_r=bd/2; shank_r=sd/2; tip_r=td/2;
   bx=-root_overlap; sx=len*0.55; tx=len;
-
-  // <-- prongs extrude ONLY prong_thickness (still from z=0 up)
-  linear_extrude(height=prong_thickness)
+  linear_extrude(height=base_thickness)
   union(){
     translate([bx,0]) circle(r=base_r);
     hull(){translate([bx,0])circle(r=base_r);translate([sx,0])circle(r=shank_r);}
@@ -51,20 +44,17 @@ module spike_single_flat(len=spike_length,bd=base_d,sd=shank_d,td=tip_d){
 }
 
 module thumb_well_top(){
-  // Subtract well from TOP of the BODY (not the prongs)
-  translate([0,0,body_thickness - thumb_depth])
+  translate([0,0,total_thickness()-thumb_depth])
     cylinder(h=thumb_depth,d=hub_diameter,$fn=72);
 }
 
 module edge_numbers_top(distances,a){
   n=len(distances);
   for(i=[0:n-1]){
-    // <-- COUNTERclockwise progression (positive angle)
-    angN=+360*(i+0.5)/n;
-
+    angN=-360*(i+0.5)/n;
     translate([(label_radial*a)*cos(angN),
                (label_radial*a)*sin(angN),
-               body_thickness - 0.01])
+               base_thickness - 0.01])
       rotate([0,0,angN-90])
         linear_extrude(height=label_depth)
           text(str(distances[i]),
@@ -73,23 +63,19 @@ module edge_numbers_top(distances,a){
   }
 }
 
+
 module wheel_solid(distances){
   n=len(distances);
   a=apothem(outer_flat_to_flat,n);
-
   union(){
-    // <-- body uses body_thickness
-    polygon_plate(n,outer_flat_to_flat,body_thickness);
-
+    polygon_plate(n,outer_flat_to_flat,base_thickness);
     for(i=[0:n-1]){
-      // <-- COUNTERclockwise progression (positive angle)
-      angN=+360*(i+0.5)/n;
-
+      angN=-360*(i+0.5)/n;
       translate([a*cos(angN),a*sin(angN),0])
         rotate([0,0,angN]){
           sep=distances[i];
-          translate([0,+sep/2,0]) spike_single_flat();
-          translate([0,-sep/2,0]) spike_single_flat();
+          translate([0,+sep/2,0])spike_single_flat();
+          translate([0,-sep/2,0])spike_single_flat();
         }
     }
   }
@@ -107,5 +93,5 @@ module discriminator(distances){
     edge_numbers_top(distances, apothem(outer_flat_to_flat,n));
   }
 }
-
 discriminator(distances_mm);
+
