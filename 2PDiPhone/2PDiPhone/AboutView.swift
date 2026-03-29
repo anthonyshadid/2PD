@@ -104,14 +104,15 @@ The app does not collect analytics or personal data. Generated files are stored 
                 // Attribution & License
                 SectionHeader("Attribution")
                 Text("""
-Based on ideas from the open-source project **2PD** (anthonyshadid/2PD). All trademarks and references belong to their respective owners.
+Based on ideas from the open-source project **2PD** (anthonyshadid/2PD). The companion website **TwoPDTL** was made by **Anthony Shadid** and **Keyvon Rashidi**: https://tinyurl.com/TwoPDTL
+
+All trademarks and references belong to their respective owners.
 """)
 
                 // Contributors
-                SectionHeader("Contributors")
+                SectionHeader("App Contributors")
                 Text("""
                 **Keyvon Rashidi**  
-                
 
                 **Anthony Shadid**  
                 

@@ -19,19 +19,33 @@ struct ContentView: View {
 
     var body: some View {
         Form {
-            Section("Enter any 8 custom distances (mm)") {
+            Section {
                 ForEach(0..<8, id: \.self) { i in
                     TextField("Distance \(i+1)", text: $fields[i])
                         .keyboardType(.decimalPad)
+                }
+            } header: {
+                HStack {
+                    Text("Enter any 8 custom distances (mm)")
+                    Spacer()
+                    Button("Clear") {
+                        fields = Array(repeating: "", count: 8)
+                        errorText = nil
+                    }
+                    .font(.subheadline)
+                    .buttonStyle(.bordered)
                 }
             }
             Section {
                 Button("Generate STL") { generate() }
                     .buttonStyle(.borderedProminent)
 
-                // for quick sanity testing:
-                Button("Quick Test (2,3,4,5,8,12,18,25)") {
-                    fields = ["2","3","4","5","8","12","18","25"]; generate()
+                Button("Fine Preset (0,2,3,4,5,6,7,8)") {
+                    fields = ["0","2","3","4","5","6","7","8"]; generate()
+                }
+
+                Button("Broad Preset (0,9,10,11,12,13,14,15)") {
+                    fields = ["0","9","10","11","12","13","14","15"]; generate()
                 }
             }
             if let errorText { Text(errorText).foregroundStyle(.red) }
@@ -67,4 +81,3 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
-

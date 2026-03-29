@@ -4,7 +4,7 @@
 //  2PDiPhone
 
 //  Created by Keyvon R on 11/9/25.
-//  Updated to match flat-prong SCAD with 7-seg engraved numbers on both sides
+//  Updated to match the current SCAD-compatible wheel geometry
 //
 
 import Foundation
@@ -16,15 +16,15 @@ enum STLGenError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .needAtLeast3: return "distances_mm must have at least 3 entries."
-        case .badDistances: return "Please enter numeric distances (mm)."
+        case .badDistances: return "Please enter numeric distances (mm) greater than or equal to 0."
         }
     }
 }
 
-/// Generates STL that mirrors the current SCAD (flat prongs + engraved 7-seg digits both sides).
+/// Generates STL that mirrors the current SCAD-compatible wheel geometry.
 func generateSCADCompatSTL(distancesMM: [Double]) throws -> URL {
     guard distancesMM.count >= 3 else { throw STLGenError.needAtLeast3 }
-    guard distancesMM.allSatisfy({ $0.isFinite && $0 > 0 }) else { throw STLGenError.badDistances }
+    guard distancesMM.allSatisfy({ $0.isFinite && $0 >= 0 }) else { throw STLGenError.badDistances }
 
     let tris = SCADCompatModeler.makeTris(distances: distancesMM)
     let data = STLWriter.writeASCII(tris: tris, name: "2PD_wheel")
@@ -81,26 +81,29 @@ fileprivate enum STLWriter {
 
 fileprivate enum SCADCompatModeler {
     // ---- Parameters (matching your SCAD defaults) ----
-    static let outer_flat_to_flat = 67.0
-    static let base_thickness     = 3.0
+    static let outer_flat_to_flat = 40.0
+    static let body_thickness     = 3.0
+    static let prong_thickness    = 1.4
 
     // Flat prongs
-    static let spike_length  = 16.0
-    static let base_d        = 2.2
-    static let root_overlap  = 0.0
+    static let spike_length  = 7.0
+    static let base_d        = 3.0
+    static let shank_d       = 1.4
+    static let tip_d         = 0.15
+    static let root_overlap  = 0.7
 
     // Hub / thumb well
-    static let hub_diameter  = 20.0
+    static let hub_diameter  = 17.0
     static let thumb_depth   = 0.5
 
-    // Labels (7-segment, engraved both sides)
-    static let label_size    = 4.0
-    static let label_depth   = 0.5
+    // Labels (approximated with raised seven-seg geometry)
+    static let label_size    = 2.5
+    static let label_depth   = 0.3
     static let label_radial  = 0.80
 
     // Tessellation
-    static let fnPolygon     = 96
-    static let fnRound       = 96
+    static let fnPolygon     = 72
+    static let fnRound       = 72
 
     // Utility (same meaning as SCAD)
     private static func apothem(acrossFlats: Double, n: Int) -> Double {
@@ -108,12 +111,6 @@ fileprivate enum SCADCompatModeler {
     }
     private static func circRadius(acrossFlats: Double, n: Int) -> Double {
         acrossFlats / (2.0 * cos(.pi / Double(n)))
-    }
-
-    // Safe engraving depth (so top+bottom never meet)
-    private static func engrDepth() -> Double {
-        let maxDepth = base_thickness / 2.0 - 0.05
-        return min(label_depth, maxDepth)
     }
 
     // Main entry
@@ -129,9 +126,9 @@ fileprivate enum SCADCompatModeler {
             let ang = 2.0 * .pi * Double(i) / Double(n)
             return V(x: r * cos(ang), y: r * sin(ang), z: 0)
         }
-        tris += extrudePolygon(basePoly2D, z0: 0.0, z1: base_thickness)
+        tris += extrudePolygon(basePoly2D, z0: 0.0, z1: body_thickness)
 
-        // 2) Flat prongs (triangles) at each face, two per edge (sep = distance)
+        // 2) Flat prongs at each face, two per edge (sep = distance)
         for i in 0..<n {
             let sep = distances[i]
             let angN = -2.0 * .pi * (Double(i) + 0.5) / Double(n)
@@ -140,13 +137,7 @@ fileprivate enum SCADCompatModeler {
 
             let cosA = cos(angN)
             let sinA = sin(angN)
-
-            // local 2D vertices of prong triangle in (x,y) before rotation/translation
-            let localVerts: [(Double, Double)] = [
-                (-root_overlap, -base_d / 2.0),
-                (-root_overlap,  base_d / 2.0),
-                ( spike_length,  0.0)
-            ]
+            let localVerts = spikeProfile2D()
 
             // two prongs per face: ±sep/2 along local "y"
             for sign in [+1.0, -1.0] {
@@ -157,17 +148,16 @@ fileprivate enum SCADCompatModeler {
                     let wy = cy + lx * sinA + yShift * cosA
                     return V(x: wx, y: wy, z: 0.0)
                 }
-                tris += extrudePolygon(polyWorld, z0: 0.0, z1: base_thickness)
+                tris += extrudePolygon(polyWorld, z0: 0.0, z1: prong_thickness)
             }
         }
 
         // 3) Thumb well pocket (top)
         tris += pocketTop(radius: hub_diameter / 2.0,
-                          zTop: base_thickness,
+                          zTop: body_thickness,
                           depth: thumb_depth)
 
-        // 4) Engraved numbers (7-seg) on top and bottom
-        let depth = engrDepth()
+        // 4) Raised numbers on top only
         for i in 0..<n {
             let value = distances[i]
             let angN = -2.0 * .pi * (Double(i) + 0.5) / Double(n)
@@ -176,29 +166,20 @@ fileprivate enum SCADCompatModeler {
             let cx = labelR * cos(angN)
             let cy = labelR * sin(angN)
 
-            // Local glyph axes (xAxis = outward, yAxis = along edge)
-            let xAxis = V(x: cos(angN),  y: sin(angN),  z: 0)
-            let yAxis = V(x: -sin(angN), y: cos(angN),  z: 0)
-
-            // TOP engraving (into top surface: z from top-depth .. top)
-            let centerTop = V(x: cx, y: cy, z: base_thickness)
-            tris += engraveSevenSegmentNumber(value,
-                                              center: centerTop,
-                                              xAxis: xAxis,
-                                              yAxis: yAxis,
-                                              height: label_size,
-                                              z0: base_thickness - depth,
-                                              z1: base_thickness)
-
-            // BOTTOM engraving (into bottom surface: z from 0 .. depth)
-            let centerBottom = V(x: cx, y: cy, z: 0.0)
-            tris += engraveSevenSegmentNumber(value,
-                                              center: centerBottom,
-                                              xAxis: xAxis,
-                                              yAxis: yAxis,
-                                              height: label_size,
-                                              z0: 0.0,
-                                              z1: depth)
+            // Match SCAD rotate([0,0,angN-90]):
+            // local text X follows the tangent, local text Y points radially outward.
+            let xAxis = V(x: cos(angN), y: sin(angN), z: 0)
+            let yAxis = V(x: sin(angN), y: -cos(angN), z: 0)
+            let z0 = max(0.0, body_thickness - 0.01)
+            let z1 = z0 + label_depth
+            let centerTop = V(x: cx, y: cy, z: z0)
+            tris += addSevenSegmentNumber(value,
+                                          center: centerTop,
+                                          xAxis: xAxis,
+                                          yAxis: yAxis,
+                                          height: label_size,
+                                          z0: z0,
+                                          z1: z1)
         }
 
         return tris
@@ -257,6 +238,62 @@ fileprivate enum SCADCompatModeler {
         return .init(x: v.x / L, y: v.y / L, z: v.z / L)
     }
 
+    private static func spikeProfile2D() -> [(Double, Double)] {
+        let bx = -root_overlap
+        let sx = spike_length * 0.55
+        let tx = spike_length
+        let samplesPerCircle = max(12, fnRound / 6)
+        let circles: [(Double, Double)] = [
+            (bx, base_d / 2.0),
+            (sx, shank_d / 2.0),
+            (tx, tip_d / 2.0)
+        ]
+
+        var points: [(Double, Double)] = []
+        points.reserveCapacity(circles.count * samplesPerCircle)
+
+        for (cx, radius) in circles {
+            for step in 0..<samplesPerCircle {
+                let angle = 2.0 * .pi * Double(step) / Double(samplesPerCircle)
+                points.append((cx + radius * cos(angle), radius * sin(angle)))
+            }
+        }
+
+        return convexHull(points)
+    }
+
+    private static func convexHull(_ points: [(Double, Double)]) -> [(Double, Double)] {
+        let sorted = points.sorted {
+            if abs($0.0 - $1.0) > 1e-9 { return $0.0 < $1.0 }
+            return $0.1 < $1.1
+        }
+        guard sorted.count > 2 else { return sorted }
+
+        func cross(_ o: (Double, Double), _ a: (Double, Double), _ b: (Double, Double)) -> Double {
+            (a.0 - o.0) * (b.1 - o.1) - (a.1 - o.1) * (b.0 - o.0)
+        }
+
+        var lower: [(Double, Double)] = []
+        for p in sorted {
+            while lower.count >= 2 && cross(lower[lower.count - 2], lower[lower.count - 1], p) <= 0 {
+                lower.removeLast()
+            }
+            lower.append(p)
+        }
+
+        var upper: [(Double, Double)] = []
+        for p in sorted.reversed() {
+            while upper.count >= 2 && cross(upper[upper.count - 2], upper[upper.count - 1], p) <= 0 {
+                upper.removeLast()
+            }
+            upper.append(p)
+        }
+
+        lower.removeLast()
+        upper.removeLast()
+        return lower + upper
+    }
+
     // Cylindrical pocket at top (thumb well)
     private static func pocketTop(radius: Double, zTop: Double, depth: Double) -> [T] {
         let z0 = zTop - depth
@@ -289,22 +326,21 @@ fileprivate enum SCADCompatModeler {
         return ts
     }
 
-    // MARK: - Seven-seg digits (engraved pockets) ----------------------------
+    // MARK: - Seven-seg digits ----------------------------------------------
 
     private struct SegRect {
         let u: Double, v: Double, uw: Double, vh: Double
     }
 
-    // Numeric seven-seg engraving for a distance value
-    private static func engraveSevenSegmentNumber(_ value: Double,
-                                                  center: V,
-                                                  xAxis: V,
-                                                  yAxis: V,
-                                                  height: Double,
-                                                  z0: Double,
-                                                  z1: Double) -> [T] {
+    private static func addSevenSegmentNumber(_ value: Double,
+                                              center: V,
+                                              xAxis: V,
+                                              yAxis: V,
+                                              height: Double,
+                                              z0: Double,
+                                              z1: Double) -> [T] {
         let numInt = Int((value).rounded())
-        let text = String(numInt)         // "2", "10", "25", etc.
+        let text = String(numInt)
 
         let h = height
         let w = 0.6 * h
@@ -321,14 +357,15 @@ fileprivate enum SCADCompatModeler {
             for rect in sevenSegmentRects(for: ch, w: w, h: h, sw: sw) {
                 let uC = cx + rect.u
                 let vC = rect.v
-                ts += pocketRect(uCenter: uC,
+                ts += raisedRect(uCenter: uC,
                                  vCenter: vC,
                                  uWidth: rect.uw,
                                  vHeight: rect.vh,
                                  frameCenter: center,
                                  xAxis: xAxis,
                                  yAxis: yAxis,
-                                 z0: z0, z1: z1)
+                                 z0: z0,
+                                 z1: z1)
             }
         }
         return ts
@@ -384,8 +421,7 @@ fileprivate enum SCADCompatModeler {
         return rects
     }
 
-    // Rectangular pocket in glyph-local (u,v) coordinates, extruded in z
-    private static func pocketRect(uCenter: Double,
+    private static func raisedRect(uCenter: Double,
                                    vCenter: Double,
                                    uWidth: Double,
                                    vHeight: Double,
@@ -397,7 +433,6 @@ fileprivate enum SCADCompatModeler {
         let du = uWidth / 2.0
         let dv = vHeight / 2.0
 
-        // map (u,v) -> world XY: frameCenter + u * yAxis + v * xAxis
         func toWorldXY(u: Double, v: Double) -> V {
             frameCenter + yAxis * u + xAxis * v
         }
