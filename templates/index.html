@@ -10,140 +10,348 @@
   <script src="https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://unpkg.com/three@0.161.0/examples/js/loaders/STLLoader.js"></script>
 
+  <!-- Optional techy title font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg: #0b1020;
-      --card: rgba(255,255,255,0.96);
-      --muted: #6b7280;
-      --text: #0f172a;
-      --blue: #2563eb;
+      --bg:#0b1020;
+      --bg-deep:#060814;
+      --panel:#ffffff;
+      --panel-soft:rgba(255,255,255,0.96);
+      --text:#0f172a;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --line-soft:#e2e8f0;
+      --blue:#2563eb;
       --blue-dark:#1e40af;
-      --ring: rgba(37,99,235,0.25);
+      --ring:rgba(37,99,235,0.25);
       --good:#16a34a;
       --warn:#f59e0b;
       --bad:#dc2626;
-      --radius: 18px;
-      --shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+      --about-text:#e5e7eb;
+      --about-muted:#9ca3af;
+      --about-accent:#93c5fd;
+      --about-link:#60a5fa;
+      --radius:20px;
+      --shadow:0 20px 60px rgba(15, 23, 42, 0.18);
     }
-    *{box-sizing:border-box}
+
+    *{ box-sizing:border-box; }
+
     body{
-      margin:0; min-height:100vh; display:grid; place-items:center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin:0;
+      min-height:100vh;
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       color:var(--text);
       background:
         radial-gradient(1200px 700px at 15% -10%, #1e3a8a 0%, transparent 55%),
         radial-gradient(1200px 700px at 110% 10%, #0ea5e9 0%, transparent 50%),
         linear-gradient(160deg, #060814 0%, #0b1020 60%, #0a0f1e 100%);
-      padding: 24px;
+      padding:36px 24px 40px;
     }
+
+    .page{
+      width:min(1300px, 100%);
+      margin:0 auto;
+    }
+
+    .site-title{
+      text-align:center;
+      font-family:'Orbitron', system-ui, sans-serif;
+      font-size:clamp(2rem, 4vw, 3.25rem);
+      font-weight:800;
+      letter-spacing:0.08em;
+      color:#f8fafc;
+      margin:0 0 28px;
+      text-transform:uppercase;
+      text-shadow:
+        0 0 14px rgba(96,165,250,0.18),
+        0 0 34px rgba(37,99,235,0.12);
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:28px;
+      align-items:start;
+    }
+
     .card{
-      width:min(92vw, 720px);
-      background:var(--card);
+      background:var(--panel-soft);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
-      padding:28px 28px 22px;
       border:1px solid rgba(15,23,42,0.06);
-      position:relative;
     }
-    .header{
-      display:flex; gap:12px; align-items:center; justify-content:center;
+
+    .generator-card{
+      padding:28px 28px 22px;
+    }
+
+    .about-panel{
+      background:rgba(8,12,28,0.88);
+      color:var(--about-text);
+      padding:28px 24px;
+      position:sticky;
+      top:24px;
+      border:1px solid rgba(147,197,253,0.14);
+      max-height:calc(100vh - 48px);
+      overflow:auto;
+    }
+
+    .about-panel::-webkit-scrollbar{
+      width:10px;
+    }
+    .about-panel::-webkit-scrollbar-thumb{
+      background:rgba(148,163,184,0.35);
+      border-radius:999px;
+    }
+
+    .about-title{
+      margin:0 0 6px;
+      font-size:2rem;
+      line-height:1.15;
+      color:#f8fafc;
+    }
+
+    .about-sub{
+      color:var(--about-muted);
+      margin-bottom:20px;
+      font-size:0.98rem;
+    }
+
+    .about-panel h2{
+      margin-top:26px;
+      margin-bottom:8px;
+      font-size:1.08rem;
+      color:var(--about-accent);
+    }
+
+    .about-panel p{
+      margin:0;
+      margin-top:10px;
+      color:#d1d5db;
+      line-height:1.6;
+      font-size:0.97rem;
+    }
+
+  
+    .intro{
+      text-align:center;
+      margin-bottom:18px;
+    }
+
+    .intro h1{
+      font-size:1.6rem;
+      line-height:1.2;
+      margin:0 0 8px;
+      letter-spacing:-0.02em;
+    }
+
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      font-size:0.98rem;
+      margin:0 auto;
+      max-width:650px;
+    }
+
+    label{
+      font-weight:600;
+      font-size:0.95rem;
+      display:block;
       margin-bottom:8px;
     }
-    .logo{
-      width:42px; height:42px; display:grid; place-items:center;
-      background:#eef2ff; border-radius:12px;
-      font-weight:800; letter-spacing:0.02em; color:#1e3a8a;
-      font-size:0.9rem;
+
+    .input-wrap{
+      position:relative;
     }
-    h1{
-      font-size:1.55rem; line-height:1.2; margin:0;
-      letter-spacing:-0.02em; text-align:center;
-    }
-    .subtitle{
-      text-align:center; color:var(--muted);
-      font-size:0.95rem; margin:6px 0 18px;
-    }
-    label{
-      font-weight:600; font-size:0.95rem; display:block; margin-bottom:8px;
-    }
-    .input-wrap{ position:relative; }
+
     input[type="text"]{
-      width:100%; padding:12px 12px;
-      border-radius:12px; border:1px solid #e5e7eb;
-      font-size:1.02rem; outline: none;
-      transition: box-shadow .15s ease, border-color .15s ease;
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      font-size:1.02rem;
+      outline:none;
+      transition:box-shadow .15s ease, border-color .15s ease;
       background:white;
     }
+
     input[type="text"]:focus{
       border-color:var(--blue);
       box-shadow:0 0 0 6px var(--ring);
     }
+
     .helper{
-      font-size:0.9rem; color:var(--muted); margin-top:8px;
-      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      font-size:0.9rem;
+      color:var(--muted);
+      margin-top:8px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
     }
-    .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+
+    .chips{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
     .chip{
-      border:1px solid #e5e7eb; color:#111827; background:#f9fafb;
-      padding:6px 9px; border-radius:999px; font-size:0.85rem; cursor:pointer;
-      transition: background .12s ease, border-color .12s ease, transform .05s ease;
+      border:1px solid var(--line);
+      color:#111827;
+      background:#f9fafb;
+      padding:6px 9px;
+      border-radius:999px;
+      font-size:0.85rem;
+      cursor:pointer;
+      transition:background .12s ease, border-color .12s ease, transform .05s ease;
       user-select:none;
     }
-    .chip:hover{ background:#eef2ff; border-color:#c7d2fe; }
-    .chip:active{ transform: translateY(1px); }
-    .preview{
-      margin-top:12px; padding:10px 12px; border-radius:12px;
-      background:#f8fafc; border:1px dashed #e2e8f0; font-size:0.95rem;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .preview .list{ color:#0f172a; font-weight:600;}
-    .preview small{ color:var(--muted); font-weight:500;}
-    .status{
-      margin-top:12px; font-size:0.95rem;
-      padding:10px 12px; border-radius:12px; display:none;
-    }
-    .status.good{ display:block; background:#ecfdf3; color:var(--good); border:1px solid #bbf7d0;}
-    .status.warn{ display:block; background:#fffbeb; color:#92400e; border:1px solid #fde68a;}
-    .status.bad{ display:block; background:#fef2f2; color:var(--bad); border:1px solid #fecaca;}
 
-    .actions{ margin-top:16px; display:grid; gap:10px;}
-    button{
-      width:100%; padding:12px 14px; font-size:1rem; font-weight:700;
-      border-radius:12px; border:0; cursor:pointer;
-      background:var(--blue); color:white;
-      transition: background .12s ease, transform .05s ease, opacity .12s ease;
-      display:flex; align-items:center; justify-content:center; gap:10px;
+    .chip:hover{
+      background:#eef2ff;
+      border-color:#c7d2fe;
     }
-    button:hover{ background:var(--blue-dark); }
-    button:active{ transform: translateY(1px); }
-    button[disabled]{ opacity:.6; cursor:not-allowed; transform:none; }
+
+    .chip:active{
+      transform:translateY(1px);
+    }
+
+    .preview{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#f8fafc;
+      border:1px dashed var(--line-soft);
+      font-size:0.95rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .preview .list{
+      color:#0f172a;
+      font-weight:600;
+    }
+
+    .preview small{
+      color:var(--muted);
+      font-weight:500;
+    }
+
+    .status{
+      margin-top:12px;
+      font-size:0.95rem;
+      padding:10px 12px;
+      border-radius:12px;
+      display:none;
+    }
+
+    .status.good{
+      display:block;
+      background:#ecfdf3;
+      color:var(--good);
+      border:1px solid #bbf7d0;
+    }
+
+    .status.warn{
+      display:block;
+      background:#fffbeb;
+      color:#92400e;
+      border:1px solid #fde68a;
+    }
+
+    .status.bad{
+      display:block;
+      background:#fef2f2;
+      color:var(--bad);
+      border:1px solid #fecaca;
+    }
+
+    .actions{
+      margin-top:16px;
+      display:grid;
+      gap:10px;
+    }
+
+    button{
+      width:100%;
+      padding:12px 14px;
+      font-size:1rem;
+      font-weight:700;
+      border-radius:12px;
+      border:0;
+      cursor:pointer;
+      background:var(--blue);
+      color:white;
+      transition:background .12s ease, transform .05s ease, opacity .12s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+    }
+
+    button:hover{
+      background:var(--blue-dark);
+    }
+
+    button:active{
+      transform:translateY(1px);
+    }
+
+    button[disabled]{
+      opacity:.6;
+      cursor:not-allowed;
+      transform:none;
+    }
 
     .secondary{
-      background:#0f172a; color:white; font-weight:600;
+      background:#0f172a;
+      color:white;
+      font-weight:600;
     }
-    .secondary:hover{ background:#111827; }
+
+    .secondary:hover{
+      background:#111827;
+    }
 
     .spinner{
-      width:16px; height:16px; border-radius:999px;
+      width:16px;
+      height:16px;
+      border-radius:999px;
       border:2px solid rgba(255,255,255,0.5);
-      border-top-color:white; animation:spin .7s linear infinite;
+      border-top-color:white;
+      animation:spin .7s linear infinite;
     }
-    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
 
     .footer{
-      margin-top:14px; text-align:center; color:var(--muted); font-size:0.85rem;
+      margin-top:14px;
+      text-align:center;
+      color:var(--muted);
+      font-size:0.85rem;
     }
 
-    /* ---- preset instant downloads ---- */
     .preset-downloads{
-      margin-top:14px;
+      margin-top:18px;
       padding:12px;
       border-radius:14px;
       background:#f8fafc;
-      border:1px solid #e2e8f0;
+      border:1px solid var(--line-soft);
       display:grid;
       gap:8px;
     }
+
     .preset-downloads .title{
       font-weight:700;
       font-size:0.95rem;
@@ -151,12 +359,16 @@
       display:flex;
       justify-content:space-between;
       align-items:center;
+      gap:10px;
     }
+
     .preset-downloads .hint{
       font-weight:500;
       font-size:0.85rem;
       color:var(--muted);
+      white-space:nowrap;
     }
+
     a.preset-btn{
       width:100%;
       padding:12px 14px;
@@ -171,12 +383,17 @@
       gap:8px;
       background:#0f172a;
       color:white;
-      transition: background .12s ease, transform .05s ease, opacity .12s ease;
+      transition:background .12s ease, transform .05s ease, opacity .12s ease;
     }
-    a.preset-btn:hover{ background:#111827; }
-    a.preset-btn:active{ transform: translateY(1px); }
 
-    /* ---- 3D preview panel ---- */
+    a.preset-btn:hover{
+      background:#111827;
+    }
+
+    a.preset-btn:active{
+      transform:translateY(1px);
+    }
+
     .viewer-wrap{
       margin-top:16px;
       padding:12px;
@@ -185,6 +402,7 @@
       display:none;
       border:1px solid rgba(15,23,42,0.2);
     }
+
     .viewer-title{
       color:white;
       font-size:0.9rem;
@@ -195,128 +413,233 @@
       margin-bottom:8px;
       opacity:0.9;
     }
+
     .viewer-hint{
       font-weight:500;
       font-size:0.8rem;
       opacity:0.7;
     }
+
     #viewer{
       width:100%;
       height:320px;
       display:block;
       border-radius:10px;
-      background: radial-gradient(600px 320px at 50% -10%, #1f2937 0%, #0b1020 65%);
+      background:radial-gradient(600px 320px at 50% -10%, #1f2937 0%, #0b1020 65%);
       overflow:hidden;
+    }
+
+    @media (max-width: 1050px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+
+      .about-panel{
+        position:relative;
+        top:auto;
+        max-height:none;
+      }
+    }
+
+    @media (max-width: 720px){
+      body{
+        padding:24px 14px 28px;
+      }
+
+      .generator-card,
+      .about-panel{
+        padding:22px 18px;
+      }
+
+      .preset-downloads .title{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .preview{
+        flex-direction:column;
+        align-items:flex-start;
+      }
     }
   </style>
 </head>
+
 <body>
-  <main class="card">
-      <div style="display:flex; justify-content:center; gap:16px; margin-bottom:16px;">
-        <button id="tabGen" onclick="showTab('gen')" style="font-weight:700;">Generator</button>
-        <button id="tabAbout" onclick="showTab('about')" style="opacity:0.6;">About</button>
-      </div>
-<div id="generatorSection">
-<!-- ALL your current content (everything you already have) -->
-    <div class="header">
-      <div class="logo">2PD</div>
-      <h1>2PD Generator</h1>
+  <div class="page">
+    <div class="site-title">2PD Generator</div>
+
+    <div class="layout">
+      <main class="card generator-card" id="generator">
+        <section class="intro">
+          <div class="subtitle">
+            We’re making 2-point discrimination devices more accessible, affordable, and customizable through open-source, 3D-printable designs. Download preset STL wheels instantly, or create your own below.
+          </div>
+        </section>
+
+        <div class="preset-downloads" aria-label="preset downloads">
+          <div class="title">
+            <span>Preset wheels (instant download)</span>
+            <span class="hint">No generation needed</span>
+          </div>
+
+          <a class="preset-btn" href="/static/presets/fine_preset4.stl" download>
+            Fine (0–8mm)
+          </a>
+
+          <a class="preset-btn" href="/static/presets/broad_preset4.stl" download>
+            Broad (0–15mm)
+          </a>
+        </div>
+
+        <label for="distances" style="margin-top:18px;">Custom distances in millimeters</label>
+        <div class="input-wrap">
+          <input
+            id="distances"
+            type="text"
+            inputmode="decimal"
+            placeholder="e.g., 0,2,3,4,5,6,7,8 or 0,9,10,11,12,13,14,15"
+            value="0,2,3,4,5,6,7,8"
+          />
+        </div>
+
+        <div class="helper">
+          <span>Comma-separated numbers (max 17mm)</span>
+          <span id="countHint">8 values</span>
+        </div>
+
+        <div class="chips" aria-label="presets">
+          <div class="chip" data-preset="0,2,3,4,5,6,7,8">Load Fine into custom</div>
+          <div class="chip" data-preset="0,9,10,11,12,13,14,15">Load Broad into custom</div>
+          <div class="chip" data-preset="">Clear</div>
+        </div>
+
+        <div class="preview" role="status" aria-live="polite">
+          <div>
+            <div class="list" id="previewList">2, 4, 6, 8, 10, 15, 20, 25</div>
+            <small id="previewMeta">Sorted • no duplicates</small>
+          </div>
+          <small id="previewBadge">✓ Ready</small>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="actions">
+          <button id="generateBtn">
+            <span id="btnText">Generate Custom STL</span>
+          </button>
+          <button id="downloadBtn" class="secondary" style="display:none;">
+            Download Custom STL
+          </button>
+        </div>
+
+        <div id="viewerWrap" class="viewer-wrap">
+          <div class="viewer-title">
+            STL Preview
+            <span class="viewer-hint">Drag to rotate • Scroll to zoom</span>
+          </div>
+          <div id="viewer"></div>
+        </div>
+
+        <div class="footer">
+          Tip: keep numbers increasing clockwise for easy clinical use.
+        </div>
+      </main>
+
+      <!-- ABOUT PANEL (button removed) -->
+      <aside class="card about-panel" id="about">
+      
+        <h1 class="about-title">2PD Generator</h1>
+        <div class="about-sub">Version 1.0</div>
+      
+        <h2>About</h2>
+        <p>
+          2PD Generator is a simple tool that creates a printable wheel for two-point discrimination testing. Download one of our presets, or enter 8 distances (0-17 mm) and generate your own!
+        </p>
+        <p>
+          This project was created by Anthony Shadid and Keyvon Rashidi. We created the 3D model and built this website to make these tools more accessible, customizable, and easy to use.
+        </p>
+
+        <h2>Intended Use</h2>
+        <p>
+          Designed for education, research prototyping, and demonstration. This tool has not been evaluated or cleared as a medical device. For clinical use, follow your institution’s policies.
+        </p>
+
+        <h2>Quick Start</h2>
+        <p>
+          • Enter 8 distances in millimeters (e.g., 2, 3, 4, 5, 8, 12, 14, 16)<br>
+          • TIP: distances &gt;17 are too far apart and will not print well<br>
+          • Click “Generate Custom STL”<br>
+          • Download the file<br>
+          • 3D-print the wheel (see printing guide)
+        </p>
+
+        <h2>Printing Guide</h2>
+        <p>
+          Material: PLA or PETG<br>
+          Layer height: 0.16–0.20 mm (smaller tips benefit from finer layers)<br>
+          Walls: 2–3 perimeters<br>
+          Infill: 20–40%<br>
+          Orientation: print flat<br>
+          Check tip integrity, lightly deburr tips if needed
+        </p>
+
+        <h2>Cleaning & Handling</h2>
+        <p>
+          Wipe with 70% isopropyl alcohol before and after demonstration.<br>
+          Avoid harsh sterilization/heat; printed plastics can deform.<br>
+          Inspect tips regularly. Discontinue use if damaged.<br>
+        </p>
+
+        <h2>Model Parameters</h2>
+        <p>
+          Wheel radius: 35 mm<br>
+          Hub radius: 14 mm<br>
+          Thickness: 3 mm<br>
+          Tip radius: 0.7 mm<br>
+          Tip length: 3 mm<br>
+          Facets: 48
+        </p>
+
+        <h2>Validation &amp; Accuracy</h2>
+        <p>
+          Distances are modeled directly from your inputs. Final printed distances may vary depending on printer calibration and settings. Verify with calipers if accuracy is important.
+        </p>
+
+        <h2>FAQ</h2>
+        <p>
+          <strong>What units are used?</strong><br>
+          Millimeters (mm). STL is unitless, but we follow mm convention.<br>
+        </p>
+
+        <h2>Privacy</h2>
+        <p>
+          No personal data is collected. Files are generated and downloaded directly by the user.
+        </p>
+
+        <h2>Attribution</h2>
+        <p>
+          Based on the open-source (anthonyshadid/2PD) project. The companion app “2PD” was developed by Keyvon Rashidi and Anthony Shadid.<br><br>
+         
+          https://apps.apple.com/us/app/2pd/id6761318358 <br><br>
+
+          All trademarks and references belong to their respective owners. 
+        </p>
+
+        <h2>Creators</h2>
+        <p>
+          Anthony Shadid<br><br>
+          Keyvon Rashidi
+        </p>
+
+        <h2>Disclaimer</h2>
+        <p>
+          This software is provided “as is” without warranties of any kind. Not for diagnostic use unless validated and approved by your institution. Use at your own risk. 
+        </p>
+      </aside>
     </div>
-
-    <div class="subtitle">
-      We’re making 2-point discrimination devices more accessible, affordable, and customizable through 
-      open-source, 3D-printable designs. Download preset STL wheels instantly, or create your own below.
-    </div>
-
-    <!-- Instant download presets -->
-    <div class="preset-downloads" aria-label="preset downloads">
-      <div class="title">
-        Preset wheels (instant download)
-        <span class="hint">No generation needed</span>
-      </div>
-
-      <a class="preset-btn" href="/static/presets/fine_preset4.stl" download>
-        Download Fine Preset (0–8mm)
-      </a>
-
-      <a class="preset-btn" href="/static/presets/broad_preset4.stl" download>
-        Download Broad Preset (0-15mm)
-      </a>
-    </div>
-
-
-    <label for="distances" style="margin-top:18px;">Custom distances in millimeters</label>
-    <div class="input-wrap">
-      <input id="distances" type="text" inputmode="decimal"
-        placeholder="e.g., 0,2,3,4,5,6,7,8 or 0,9,10,11,12,13,14,15"
-        value="0,2,3,4,5,6,7,8" />
-    </div>
-
-    <div class="helper">
-      <span>Comma-separated numbers (max 30mm)</span>
-      <span id="countHint">8 values</span>
-    </div>
-
-    <div class="chips" aria-label="presets">
-      <div class="chip" data-preset="0,2,3,4,5,6,7,8">Load Fine into custom</div>
-      <div class="chip" data-preset="0,9,10,11,12,13,14,15">Load Broad into custom</div>
-      <div class="chip" data-preset="">Clear</div>
-    </div>
-
-
-    <div class="preview" role="status" aria-live="polite">
-      <div>
-        <div class="list" id="previewList">2, 4, 6, 8, 10, 15, 20, 25</div>
-        <small id="previewMeta">Sorted • no duplicates</small>
-      </div>
-      <small id="previewBadge">✓ Ready</small>
-    </div>
-
-    <div id="status" class="status"></div>
-
-    <div class="actions">
-      <button id="generateBtn">
-        <span id="btnText">Generate Custom STL</span>
-      </button>
-      <button id="downloadBtn" class="secondary" style="display:none;">
-        Download Custom STL
-      </button>
-    </div>
-
-    <!-- 3D preview panel -->
-    <div id="viewerWrap" class="viewer-wrap">
-      <div class="viewer-title">
-        STL Preview
-        <span class="viewer-hint">Drag to rotate • Scroll to zoom</span>
-      </div>
-      <div id="viewer"></div>
-    </div>
-
-    <div class="footer">
-      Tip: keep numbers increasing clockwise for easy clinical use.
-    </div>
+  </div>
 
   <script>
-      function showTab(tab){
-        const gen = document.getElementById("generatorSection");
-        const about = document.getElementById("aboutSection");
-
-        const tabGen = document.getElementById("tabGen");
-        const tabAbout = document.getElementById("tabAbout");
-
-        if(tab === "gen"){
-          gen.style.display = "block";
-          about.style.display = "none";
-          tabGen.style.opacity = "1";
-          tabAbout.style.opacity = "0.6";
-        } else {
-          gen.style.display = "none";
-          about.style.display = "block";
-          tabGen.style.opacity = "0.6";
-          tabAbout.style.opacity = "1";
-        }
-      }
-    // If this log doesn't show in console, your script isn't running.
     console.log("index.html script loaded");
 
     const input = document.getElementById('distances');
@@ -342,12 +665,12 @@
       if (nums.some(n => Number.isNaN(n))) errors.push("Only numbers are allowed.");
       if (nums.some(n => n > 30)) errors.push("Max allowed distance is 30mm.");
 
-      const rounded = nums.map(n => Math.round(n*1000)/1000);
+      const rounded = nums.map(n => Math.round(n * 1000) / 1000);
       const uniq = Array.from(new Set(rounded));
       if (uniq.length !== rounded.length) errors.push("Remove duplicate values.");
       if (uniq.length < 2) errors.push("Enter at least two distances.");
 
-      return { values: uniq.sort((a,b)=>a-b), errors };
+      return { values: uniq.sort((a,b) => a - b), errors };
     }
 
     function setStatus(type, msg){
@@ -355,6 +678,7 @@
       statusEl.textContent = msg;
       statusEl.style.display = "block";
     }
+
     function clearStatus(){
       statusEl.className = "status";
       statusEl.textContent = "";
@@ -362,8 +686,8 @@
     }
 
     function updateUI(){
-      const {values, errors} = parseDistances(input.value);
-      countHint.textContent = `${values.length} value${values.length===1?"":"s"}`;
+      const { values, errors } = parseDistances(input.value);
+      countHint.textContent = `${values.length} value${values.length === 1 ? "" : "s"}`;
       previewList.textContent = values.length ? values.join(', ') : "—";
       previewMeta.textContent = values.length ? "Sorted • no duplicates" : "Waiting for input";
 
@@ -373,16 +697,17 @@
         btn.disabled = true;
         return;
       }
+
       clearStatus();
       previewBadge.textContent = "✓ Ready";
       btn.disabled = false;
     }
+
     input.addEventListener('input', updateUI);
     updateUI();
 
-    // only chips load values into custom input
-    document.querySelectorAll('.chip').forEach(chip=>{
-      chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
         input.value = chip.dataset.preset;
         updateUI();
         input.focus();
@@ -405,7 +730,6 @@
       }
     }
 
-    // ---------- Three.js viewer ----------
     let scene, camera, renderer, controls, currentMesh;
 
     function initViewer(){
@@ -422,7 +746,7 @@
       const w = viewerDiv.clientWidth;
       const h = viewerDiv.clientHeight;
 
-      camera = new THREE.PerspectiveCamera(35, w/h, 0.1, 2000);
+      camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 2000);
       camera.position.set(0, -90, 90);
 
       renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
@@ -436,6 +760,7 @@
       controls.dampingFactor = 0.08;
 
       scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 1.1));
+
       const dir = new THREE.DirectionalLight(0xffffff, 1.2);
       dir.position.set(80, 120, 100);
       scene.add(dir);
@@ -444,7 +769,7 @@
         if (!renderer) return;
         const nw = viewerDiv.clientWidth;
         const nh = viewerDiv.clientHeight;
-        camera.aspect = nw/nh;
+        camera.aspect = nw / nh;
         camera.updateProjectionMatrix();
         renderer.setSize(nw, nh);
       });
@@ -467,6 +792,7 @@
 
         const loader = new THREE.STLLoader();
         const fr = new FileReader();
+
         fr.onload = (e) => {
           const geom = loader.parse(e.target.result);
 
@@ -479,12 +805,10 @@
           geom.computeBoundingBox();
           const box = geom.boundingBox;
 
-          // center
           const center = new THREE.Vector3();
           box.getCenter(center);
           geom.translate(-center.x, -center.y, -center.z);
 
-          // scale to nice size
           const size = new THREE.Vector3();
           box.getSize(size);
           const maxDim = Math.max(size.x, size.y, size.z);
@@ -492,12 +816,17 @@
 
           currentMesh = new THREE.Mesh(
             geom,
-            new THREE.MeshStandardMaterial({ color: 0xdde3ea, metalness: 0.15, roughness: 0.6 })
+            new THREE.MeshStandardMaterial({
+              color: 0xdde3ea,
+              metalness: 0.15,
+              roughness: 0.6
+            })
           );
+
           currentMesh.scale.setScalar(scale);
           scene.add(currentMesh);
 
-          controls.target.set(0,0,0);
+          controls.target.set(0, 0, 0);
           controls.update();
 
           const w = viewerDiv.clientWidth;
@@ -506,24 +835,28 @@
           camera.updateProjectionMatrix();
           renderer.setSize(w, h);
         };
+
         fr.readAsArrayBuffer(blob);
       });
     }
 
-    // ---------- Generate custom ----------
-    btn.addEventListener('click', async ()=>{
-      const {values, errors} = parseDistances(input.value);
+    btn.addEventListener('click', async () => {
+      const { values, errors } = parseDistances(input.value);
       if (errors.length) return;
 
       setLoading(true);
       downloadBtn.style.display = "none";
+
       if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
 
       try {
         const formData = new FormData();
         formData.append("distances_mm", values.join(','));
 
-        const res = await fetch("/generate", { method:"POST", body:formData });
+        const res = await fetch("/generate", {
+          method:"POST",
+          body:formData
+        });
 
         if (!res.ok){
           let msg = "Generation failed.";
@@ -541,7 +874,7 @@
 
         setStatus("good", "Custom STL generated successfully.");
         downloadBtn.style.display = "block";
-        downloadBtn.onclick = ()=> {
+        downloadBtn.onclick = () => {
           const a = document.createElement('a');
           a.href = url;
           a.download = "2pd_wheel_custom.stl";
@@ -555,104 +888,10 @@
       } catch (err){
         console.error(err);
         setStatus("bad", "Network error. Please try again.");
-      } finally{
+      } finally {
         setLoading(false);
       }
     });
   </script>
-</div>
-
-<div id="aboutSection" style="display:none; color:#0f172a;">
-        
-    <h2>About</h2>
-    <p>
-      2PD Generator is a simple tool that creates a printable wheel for
-      two-point discrimination testing. Enter up to 8 distances (mm) and the site
-      generates an STL you can download and print.
-    </p>
-    <p>
-      This project was created by Anthony Shadid and
-      Keyvon Rashidi. We created the 3D model and built this website to make
-      these tools more accessible, customizable, and easy to use.
-    </p>
-
-    <h2>Intended Use</h2>
-    <p>
-      Designed for education, research prototyping, and demonstration. This tool
-      has not been evaluated or cleared as a medical device. For clinical use,
-      follow your institution’s policies.
-    </p>
-
-    <h2>Quick Start</h2>
-    <p>
-      • Enter distances in millimeters (e.g., 2, 3, 4, 5, 8, 12, 14, 16)<br>
-      • TIP: distances >17 are too far apart and will not print well<br>
-      • Click “Generate STL”<br>
-      • Download the file<br>
-      • Print the wheel
-    </p>
-
-    <h2>Printing Guide</h2>
-    <p>
-      Material: PLA or PETG<br>
-      Layer height: 0.16–0.20 mm<br>
-      Walls: 2–3 perimeters<br>
-      Infill: 20–40%<br>
-      Orientation: print flat<br>
-      Lightly deburr tips if needed
-    </p>
-
-    <h2>Model Parameters</h2>
-    <p>
-      Wheel radius: 35 mm<br>
-      Hub radius: 14 mm<br>
-      Thickness: 3 mm<br>
-      Tip radius: 0.7 mm<br>
-      Tip length: 3 mm<br>
-      Facets: 48
-    </p>
-
-    <h2>Validation & Accuracy</h2>
-    <p>
-      Distances are modeled directly from your inputs. Final printed distances
-      may vary depending on printer calibration and settings. Verify with
-      calipers if accuracy is important.
-    </p>
-
-    <h2>FAQ</h2>
-    <p>
-      <strong>What units are used?</strong><br>
-      Millimeters (mm). STL files follow mm convention.
-    </p>
-
-    
-    <h2>Privacy</h2>
-    <p>
-      No personal data is collected. Files are generated and downloaded directly
-      by the user.
-    </p>
-
-    <h2>Attribution</h2>
-    <p>
-      Based on the open-source (anthonyshadid/2PD) project. The companion app “2PD” was developed
-      by Keyvon Rashidi and Anthony Shadid.
-    </p>
-
-    <h2>Creators</h2>
-    <p>
-      Anthony Shadid<p>
-<p>
-      Keyvon Rashidi
-    </p>
-
-    <h2>Disclaimer</h2>
-    <p>
-      This software is provided “as is” without warranties of any kind. Not for
-      diagnostic use unless validated and approved by your institution.
-    </p>
-
-  </div>
-</main>
 </body>
 </html>
-
