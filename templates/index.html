@@ -212,16 +212,12 @@
 </head>
 <body>
   <main class="card">
-      <div style="display:flex; justify-content:center; margin-bottom:12px;">
-        <a href="/about" style="
-          font-size:0.9rem;
-          font-weight:600;
-          color:#2563eb;
-          text-decoration:none;
-        ">
-          About
-        </a>
+      <div style="display:flex; justify-content:center; gap:16px; margin-bottom:16px;">
+        <button id="tabGen" onclick="showTab('gen')" style="font-weight:700;">Generator</button>
+        <button id="tabAbout" onclick="showTab('about')" style="opacity:0.6;">About</button>
       </div>
+<div id="generatorSection">
+<!-- ALL your current content (everything you already have) -->
     <div class="header">
       <div class="logo">2PD</div>
       <h1>2PD Generator</h1>
@@ -229,7 +225,7 @@
 
     <div class="subtitle">
       We’re making 2-point discrimination devices more accessible, affordable, and customizable through 
-      open 3D-printable designs. Download preset STL wheels instantly, or create your own below.
+      open-source, 3D-printable designs. Download preset STL wheels instantly, or create your own below.
     </div>
 
     <!-- Instant download presets -->
@@ -299,9 +295,27 @@
     <div class="footer">
       Tip: keep numbers increasing clockwise for easy clinical use.
     </div>
-  </main>
 
   <script>
+      function showTab(tab){
+        const gen = document.getElementById("generatorSection");
+        const about = document.getElementById("aboutSection");
+
+        const tabGen = document.getElementById("tabGen");
+        const tabAbout = document.getElementById("tabAbout");
+
+        if(tab === "gen"){
+          gen.style.display = "block";
+          about.style.display = "none";
+          tabGen.style.opacity = "1";
+          tabAbout.style.opacity = "0.6";
+        } else {
+          gen.style.display = "none";
+          about.style.display = "block";
+          tabGen.style.opacity = "0.6";
+          tabAbout.style.opacity = "1";
+        }
+      }
     // If this log doesn't show in console, your script isn't running.
     console.log("index.html script loaded");
 
@@ -546,5 +560,99 @@
       }
     });
   </script>
+</div>
+
+<div id="aboutSection" style="display:none; color:#0f172a;">
+        
+    <h2>About</h2>
+    <p>
+      2PD Generator is a simple tool that creates a printable wheel for
+      two-point discrimination testing. Enter up to 8 distances (mm) and the site
+      generates an STL you can download and print.
+    </p>
+    <p>
+      This project was created by Anthony Shadid and
+      Keyvon Rashidi. We created the 3D model and built this website to make
+      these tools more accessible, customizable, and easy to use.
+    </p>
+
+    <h2>Intended Use</h2>
+    <p>
+      Designed for education, research prototyping, and demonstration. This tool
+      has not been evaluated or cleared as a medical device. For clinical use,
+      follow your institution’s policies.
+    </p>
+
+    <h2>Quick Start</h2>
+    <p>
+      • Enter distances in millimeters (e.g., 2, 3, 4, 5, 8, 12, 14, 16)<br>
+      • TIP: distances >17 are too far apart and will not print well<br>
+      • Click “Generate STL”<br>
+      • Download the file<br>
+      • Print the wheel
+    </p>
+
+    <h2>Printing Guide</h2>
+    <p>
+      Material: PLA or PETG<br>
+      Layer height: 0.16–0.20 mm<br>
+      Walls: 2–3 perimeters<br>
+      Infill: 20–40%<br>
+      Orientation: print flat<br>
+      Lightly deburr tips if needed
+    </p>
+
+    <h2>Model Parameters</h2>
+    <p>
+      Wheel radius: 35 mm<br>
+      Hub radius: 14 mm<br>
+      Thickness: 3 mm<br>
+      Tip radius: 0.7 mm<br>
+      Tip length: 3 mm<br>
+      Facets: 48
+    </p>
+
+    <h2>Validation & Accuracy</h2>
+    <p>
+      Distances are modeled directly from your inputs. Final printed distances
+      may vary depending on printer calibration and settings. Verify with
+      calipers if accuracy is important.
+    </p>
+
+    <h2>FAQ</h2>
+    <p>
+      <strong>What units are used?</strong><br>
+      Millimeters (mm). STL files follow mm convention.
+    </p>
+
+    
+    <h2>Privacy</h2>
+    <p>
+      No personal data is collected. Files are generated and downloaded directly
+      by the user.
+    </p>
+
+    <h2>Attribution</h2>
+    <p>
+      Based on the open-source (anthonyshadid/2PD) project. The companion app “2PD” was developed
+      by Keyvon Rashidi and Anthony Shadid.
+    </p>
+
+    <h2>Creators</h2>
+    <p>
+      Anthony Shadid<p>
+<p>
+      Keyvon Rashidi
+    </p>
+
+    <h2>Disclaimer</h2>
+    <p>
+      This software is provided “as is” without warranties of any kind. Not for
+      diagnostic use unless validated and approved by your institution.
+    </p>
+
+  </div>
+</main>
 </body>
 </html>
+
