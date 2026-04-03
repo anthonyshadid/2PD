@@ -478,8 +478,7 @@
 
         <div class="preset-downloads" aria-label="preset downloads">
           <div class="title">
-            <span>Preset wheels (instant download)</span>
-            <span class="hint">No generation needed</span>
+            <span>Preset Wheels </span>
           </div>
 
           <a class="preset-btn" href="/static/presets/fine_preset4.stl" download>
@@ -491,20 +490,19 @@
           </a>
         </div>
 
-        <label for="distances" style="margin-top:18px;">Custom distances in millimeters</label>
+        <label for="distances" style="margin-top:18px;">Custom Wheel</label>
         <div class="input-wrap">
           <input
             id="distances"
             type="text"
             inputmode="decimal"
-            placeholder="e.g., 0,2,3,4,5,6,7,8 or 0,9,10,11,12,13,14,15"
+            placeholder="e.g. 0,9,10,11,12,13,14,15"
             value="0,2,3,4,5,6,7,8"
           />
         </div>
 
         <div class="helper">
-          <span>Comma-separated numbers (max 17mm)</span>
-          <span id="countHint">8 values</span>
+          <span>8 values (0-17mm)</span>
         </div>
 
         <div class="chips" aria-label="presets">
@@ -512,16 +510,6 @@
           <div class="chip" data-preset="0,9,10,11,12,13,14,15">Load Broad into custom</div>
           <div class="chip" data-preset="">Clear</div>
         </div>
-
-        <div class="preview" role="status" aria-live="polite">
-          <div>
-            <div class="list" id="previewList">2, 4, 6, 8, 10, 15, 20, 25</div>
-            <small id="previewMeta">Sorted • no duplicates</small>
-          </div>
-          <small id="previewBadge">✓ Ready</small>
-        </div>
-
-        <div id="status" class="status"></div>
 
         <div class="actions">
           <button id="generateBtn">
@@ -540,9 +528,6 @@
           <div id="viewer"></div>
         </div>
 
-        <div class="footer">
-          Tip: keep numbers increasing clockwise for easy clinical use.
-        </div>
       </main>
 
       <!-- ABOUT PANEL (button removed) -->
@@ -566,8 +551,8 @@
 
         <h2>Quick Start</h2>
         <p>
-          • Enter 8 distances in millimeters (e.g., 2, 3, 4, 5, 8, 12, 14, 16)<br>
-          • TIP: distances &gt;17 are too far apart and will not print well<br>
+          • Enter 8 distances between 0-17 millimeters (e.g., 2, 3, 4, 5, 8, 12, 14, 16)<br>
+          • Tip: distances should progressively increase for easy clinical use<br>
           • Click “Generate Custom STL”<br>
           • Download the file<br>
           • 3D-print the wheel (see printing guide)
@@ -575,29 +560,29 @@
 
         <h2>Printing Guide</h2>
         <p>
-          Material: PLA or PETG<br>
-          Layer height: 0.16–0.20 mm (smaller tips benefit from finer layers)<br>
-          Walls: 2–3 perimeters<br>
-          Infill: 20–40%<br>
-          Orientation: print flat<br>
-          Check tip integrity, lightly deburr tips if needed
+          • Material: PLA or PETG<br>
+          • Layer height: 0.16–0.20 mm (smaller tips benefit from finer layers)<br>
+          • Walls: 2–3 perimeters<br>
+          • Infill: 20–40%<br>
+          • Orientation: print flat<br>
+          • Check tip integrity, lightly deburr tips if needed
         </p>
 
         <h2>Cleaning & Handling</h2>
         <p>
-          Wipe with 70% isopropyl alcohol before and after demonstration.<br>
-          Avoid harsh sterilization/heat; printed plastics can deform.<br>
-          Inspect tips regularly. Discontinue use if damaged.<br>
+          • Wipe with 70% isopropyl alcohol before and after demonstration.<br>
+          • Avoid harsh sterilization/heat; printed plastics can deform.<br>
+          • Inspect tips regularly. Discontinue use if damaged.<br>
         </p>
 
         <h2>Model Parameters</h2>
         <p>
-          Wheel radius: 35 mm<br>
-          Hub radius: 14 mm<br>
-          Thickness: 3 mm<br>
-          Tip radius: 0.7 mm<br>
-          Tip length: 3 mm<br>
-          Facets: 48
+          • Wheel radius: 35 mm<br>
+          • Hub radius: 14 mm<br>
+          • Thickness: 3 mm<br>
+          • Tip radius: 0.7 mm<br>
+          • Tip length: 3 mm<br>
+          • Facets: 48
         </p>
 
         <h2>Validation &amp; Accuracy</h2>
