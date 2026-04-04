@@ -40,7 +40,27 @@
     }
 
     *{ box-sizing:border-box; }
+    
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
 
+    /* remove center alignment from original title */
+    .title-row .site-title {
+      text-align: left;
+      margin: 0;
+    }
+
+    /* animation size */
+    .spin-2pd {
+      width: clamp(60px, 6vw, 100px);
+      height: auto;
+      display: block;
+    }
+      
     body{
       margin:0;
       min-height:100vh;
@@ -466,7 +486,10 @@
 
 <body>
   <div class="page">
-    <div class="site-title">2PD Generator</div>
+    <div class="title-row">
+      <img src="/static/2pd_spin.webp" class="spin-2pd" alt="2PD spinning device">
+      <div class="site-title">2PD Generator</div>
+    </div>
 
     <div class="layout">
       <main class="card generator-card" id="generator">
