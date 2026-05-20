@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2PD Generator</title>
 
-  <!-- Three.js viewer deps (UMD builds) -->
-  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://unpkg.com/three@0.161.0/examples/js/loaders/STLLoader.js"></script>
-
   <!-- Optional techy title font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,41 +459,6 @@
       transform:translateY(1px);
     }
 
-    .viewer-wrap{
-      margin-top:16px;
-      padding:12px;
-      background:#0b1020;
-      border-radius:14px;
-      display:none;
-      border:1px solid rgba(15,23,42,0.2);
-    }
-
-    .viewer-title{
-      color:white;
-      font-size:0.9rem;
-      font-weight:700;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:8px;
-      opacity:0.9;
-    }
-
-    .viewer-hint{
-      font-weight:500;
-      font-size:0.8rem;
-      opacity:0.7;
-    }
-
-    #viewer{
-      width:100%;
-      height:320px;
-      display:block;
-      border-radius:10px;
-      background:radial-gradient(600px 320px at 50% -10%, #1f2937 0%, #0b1020 65%);
-      overflow:hidden;
-    }
-
     @media (max-width: 1050px){
       .layout{
         grid-template-columns:1fr;
@@ -589,20 +549,9 @@
           <button id="generateBtn">
             <span id="btnText">Generate Custom STL</span>
           </button>
-          <button id="downloadBtn" class="secondary" style="display:none;">
-            Download Custom STL
-          </button>
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
-
-        <div id="viewerWrap" class="viewer-wrap">
-          <div class="viewer-title">
-            STL Preview
-            <span class="viewer-hint">Drag to rotate • Scroll to zoom</span>
-          </div>
-          <div id="viewer"></div>
-        </div>
 
       </main>
 
@@ -706,11 +655,8 @@
     const input = document.getElementById('distances');
     const btn = document.getElementById('generateBtn');
     const btnText = document.getElementById('btnText');
-    const downloadBtn = document.getElementById('downloadBtn');
     const statusEl = document.getElementById('status');
     const countHint = document.getElementById('countHint');
-    const viewerWrap = document.getElementById('viewerWrap');
-    const viewerDiv = document.getElementById('viewer');
 
     let lastBlobUrl = null;
 
@@ -785,116 +731,6 @@
       }
     }
 
-    let scene, camera, renderer, controls, currentMesh;
-
-    function initViewer(){
-      if (renderer) return;
-
-      if (!window.THREE || !THREE.STLLoader || !THREE.OrbitControls){
-        setStatus("bad", "3D libraries failed to load. Hard refresh the page.");
-        console.error("Three/Loader missing:", window.THREE, THREE?.STLLoader, THREE?.OrbitControls);
-        return;
-      }
-
-      scene = new THREE.Scene();
-
-      const w = viewerDiv.clientWidth;
-      const h = viewerDiv.clientHeight;
-
-      camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 2000);
-      camera.position.set(0, -90, 90);
-
-      renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-      renderer.setPixelRatio(window.devicePixelRatio || 1);
-      renderer.setSize(w, h);
-      viewerDiv.innerHTML = "";
-      viewerDiv.appendChild(renderer.domElement);
-
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 1.1));
-
-      const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-      dir.position.set(80, 120, 100);
-      scene.add(dir);
-
-      window.addEventListener("resize", () => {
-        if (!renderer) return;
-        const nw = viewerDiv.clientWidth;
-        const nh = viewerDiv.clientHeight;
-        camera.aspect = nw / nh;
-        camera.updateProjectionMatrix();
-        renderer.setSize(nw, nh);
-      });
-
-      animate();
-    }
-
-    function animate(){
-      requestAnimationFrame(animate);
-      if (controls) controls.update();
-      if (renderer && scene && camera) renderer.render(scene, camera);
-    }
-
-    function show3DPreviewFromBlob(blob){
-      viewerWrap.style.display = "block";
-
-      requestAnimationFrame(() => {
-        initViewer();
-        if (!renderer) return;
-
-        const loader = new THREE.STLLoader();
-        const fr = new FileReader();
-
-        fr.onload = (e) => {
-          const geom = loader.parse(e.target.result);
-
-          if (currentMesh){
-            scene.remove(currentMesh);
-            currentMesh.geometry.dispose();
-            currentMesh.material.dispose();
-          }
-
-          geom.computeBoundingBox();
-          const box = geom.boundingBox;
-
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          geom.translate(-center.x, -center.y, -center.z);
-
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = 70 / maxDim;
-
-          currentMesh = new THREE.Mesh(
-            geom,
-            new THREE.MeshStandardMaterial({
-              color: 0xdde3ea,
-              metalness: 0.15,
-              roughness: 0.6
-            })
-          );
-
-          currentMesh.scale.setScalar(scale);
-          scene.add(currentMesh);
-
-          controls.target.set(0, 0, 0);
-          controls.update();
-
-          const w = viewerDiv.clientWidth;
-          const h = viewerDiv.clientHeight;
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-          renderer.setSize(w, h);
-        };
-
-        fr.readAsArrayBuffer(blob);
-      });
-    }
-
     function downloadBlobUrl(url){
       const a = document.createElement('a');
       a.href = url;
@@ -909,7 +745,6 @@
       if (errors.length) return;
 
       setLoading(true);
-      downloadBtn.style.display = "none";
 
       if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
 
@@ -937,11 +772,7 @@
         lastBlobUrl = url;
 
         setStatus("good", "Custom STL generated successfully.");
-        downloadBtn.style.display = "block";
-        downloadBtn.onclick = () => downloadBlobUrl(url);
         downloadBlobUrl(url);
-
-        show3DPreviewFromBlob(blob);
 
       } catch (err){
         console.error(err);
