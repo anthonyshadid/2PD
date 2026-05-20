@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, send_file, jsonify
 from make_wheel import generate_wheel_stl
 import tempfile, os
-import io
 
 app = Flask(__name__)
 
@@ -25,23 +24,31 @@ def generate():
     except ValueError:
         return jsonify(error="Distances must be numbers separated by commas."), 400
 
-    distances = sorted(set(distances))
+    if len(distances) != len(set(distances)):
+        return jsonify(error="Remove duplicate distance values."), 400
 
-    if len(distances) < 2:
-        return jsonify(error="Please enter at least two distances."), 400
-    if any(d <= 0 for d in distances):
-        return jsonify(error="All distances must be > 0."), 400
-    if any(d > 30 for d in distances):
-        return jsonify(error="Max allowed distance is 30mm."), 400
+    distances = sorted(distances)
+
+    if len(distances) != 8:
+        return jsonify(error="Please enter exactly 8 distances."), 400
+    if any(d < 0 for d in distances):
+        return jsonify(error="Distances must be 0mm or greater."), 400
+    if any(d > 17 for d in distances):
+        return jsonify(error="Max allowed distance is 17mm."), 400
 
     tmpdir = tempfile.mkdtemp()
     output_path = os.path.join(tmpdir, "wheel.stl")
 
-    generate_wheel_stl(distances, output_stl=output_path)
+    try:
+        generate_wheel_stl(distances, output_stl=output_path)
+    except Exception as exc:
+        app.logger.exception("Custom STL generation failed")
+        return jsonify(error=str(exc)), 500
 
     return send_file(
         output_path,
-        as_attachment=False,   # <-- REQUIRED FOR PREVIEW
+        as_attachment=True,
+        download_name="2pd_wheel_custom.stl",
         mimetype="model/stl"
     )
 

@@ -554,11 +554,11 @@
             <span>Preset Wheels </span>
           </div>
 
-          <a class="preset-btn" href="/static/presets/fine_preset4.stl" download>
+          <a class="preset-btn" href="/static/presets/attachables/fine_preset5%20keyhole.stl" download>
             Fine (0–8mm)
           </a>
 
-          <a class="preset-btn" href="/static/presets/broad_preset4.stl" download>
+          <a class="preset-btn" href="/static/presets/attachables/broad_preset5%20keyhole.stl" download>
             Broad (0–15mm)
           </a>
         </div>
@@ -576,6 +576,7 @@
 
         <div class="helper">
           <span>8 values (0-17mm)</span>
+          <span id="countHint">8 values</span>
         </div>
 
         <div class="chips" aria-label="presets">
@@ -592,6 +593,8 @@
             Download Custom STL
           </button>
         </div>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
 
         <div id="viewerWrap" class="viewer-wrap">
           <div class="viewer-title">
@@ -705,9 +708,6 @@
     const btnText = document.getElementById('btnText');
     const downloadBtn = document.getElementById('downloadBtn');
     const statusEl = document.getElementById('status');
-    const previewList = document.getElementById('previewList');
-    const previewMeta = document.getElementById('previewMeta');
-    const previewBadge = document.getElementById('previewBadge');
     const countHint = document.getElementById('countHint');
     const viewerWrap = document.getElementById('viewerWrap');
     const viewerDiv = document.getElementById('viewer');
@@ -719,14 +719,15 @@
       const nums = parts.map(p => Number(p));
       const errors = [];
 
-      if (parts.length === 0) errors.push("Enter at least two distances.");
+      if (parts.length === 0) errors.push("Enter exactly 8 distances.");
       if (nums.some(n => Number.isNaN(n))) errors.push("Only numbers are allowed.");
-      if (nums.some(n => n > 30)) errors.push("Max allowed distance is 30mm.");
+      if (nums.some(n => n < 0)) errors.push("Distances must be 0mm or greater.");
+      if (nums.some(n => n > 17)) errors.push("Max allowed distance is 17mm.");
 
       const rounded = nums.map(n => Math.round(n * 1000) / 1000);
       const uniq = Array.from(new Set(rounded));
       if (uniq.length !== rounded.length) errors.push("Remove duplicate values.");
-      if (uniq.length < 2) errors.push("Enter at least two distances.");
+      if (uniq.length !== 8) errors.push("Enter exactly 8 distances.");
 
       return { values: uniq.sort((a,b) => a - b), errors };
     }
@@ -746,18 +747,14 @@
     function updateUI(){
       const { values, errors } = parseDistances(input.value);
       countHint.textContent = `${values.length} value${values.length === 1 ? "" : "s"}`;
-      previewList.textContent = values.length ? values.join(', ') : "—";
-      previewMeta.textContent = values.length ? "Sorted • no duplicates" : "Waiting for input";
 
       if (errors.length){
         setStatus("bad", errors[0]);
-        previewBadge.textContent = "✕ Fix input";
         btn.disabled = true;
         return;
       }
 
       clearStatus();
-      previewBadge.textContent = "✓ Ready";
       btn.disabled = false;
     }
 
@@ -898,6 +895,15 @@
       });
     }
 
+    function downloadBlobUrl(url){
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "2pd_wheel_custom.stl";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
     btn.addEventListener('click', async () => {
       const { values, errors } = parseDistances(input.value);
       if (errors.length) return;
@@ -932,14 +938,8 @@
 
         setStatus("good", "Custom STL generated successfully.");
         downloadBtn.style.display = "block";
-        downloadBtn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = "2pd_wheel_custom.stl";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
+        downloadBtn.onclick = () => downloadBlobUrl(url);
+        downloadBlobUrl(url);
 
         show3DPreviewFromBlob(blob);
 

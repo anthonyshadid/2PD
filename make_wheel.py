@@ -36,8 +36,12 @@ def generate_wheel_stl(distances, output_stl: str | None = None) -> str:
 
     dlist = "[" + ",".join(str(float(x)) for x in distances) + "]"
 
-    # Run headless; capture output for debugging
-    cmd = ["xvfb-run", "-a", openscad_bin, "-o", stl_path, "-D", f"distances_mm={dlist}", str(scad_path)]
+    # Run headless in Linux containers when xvfb-run is present. Local macOS
+    # OpenSCAD CLI works without xvfb-run, and xvfb-run is usually unavailable.
+    cmd = [openscad_bin, "-o", stl_path, "-D", f"distances_mm={dlist}", str(scad_path)]
+    xvfb_run = shutil.which("xvfb-run")
+    if xvfb_run:
+        cmd = [xvfb_run, "-a", *cmd]
     print("Running:", " ".join(cmd))
     proc = subprocess.run(cmd, capture_output=True, text=True)
 
