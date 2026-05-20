@@ -15,9 +15,9 @@ tip_d         = is_undef(tip_d) ? 0.15 : tip_d;
 root_overlap  = is_undef(root_overlap) ? .7 : root_overlap;
 
 // --- labels / hub ---
-label_size    = is_undef(label_size) ? 3.5 : label_size;
-label_depth   = is_undef(label_depth) ? .33 : label_depth;
-font_name     = is_undef(font_name) ? "DejaVu Sans:style=Bold" : font_name;
+label_size    = is_undef(label_size) ? 4.3 : label_size;
+label_depth   = is_undef(label_depth) ? .5 : label_depth;
+font_name     = is_undef(font_name) ? "Liberation Sans:style=Bold" : font_name;
 label_radial  = is_undef(label_radial) ? 0.80 : label_radial;
 hub_diameter  = is_undef(hub_diameter) ? 17 : hub_diameter;
 thumb_depth   = is_undef(thumb_depth) ? .5 : thumb_depth;
@@ -82,16 +82,16 @@ module lanyard_corner_hole(distances){
     cylinder(h = body_thickness + 0.2, d = lanyard_hole_d, $fn = 72);
 }
 
-module edge_numbers_cut(distances,a){
+module edge_numbers_top(distances,a){
   n=len(distances);
   for(i=[0:n-1]){
     angN=+360*(i+0.5)/n;
 
     translate([(label_radial*a)*cos(angN),
                (label_radial*a)*sin(angN),
-               body_thickness - label_depth])
+               body_thickness - 0.01])
       rotate([0,0,angN-90])
-        linear_extrude(height=label_depth + 0.2)
+        linear_extrude(height=label_depth)
           text(str(distances[i]),
                size=label_size,font=font_name,
                halign="center",valign="center");
@@ -122,11 +122,14 @@ module discriminator(distances){
   n=len(distances);
   assert(n>=3,"distances_mm must have at least 3 entries.");
 
-  difference(){
-    wheel_solid(distances);
-    thumb_well_top();
-    lanyard_corner_hole(distances);
-    edge_numbers_cut(distances, apothem(outer_flat_to_flat,n));
+  union(){
+    difference(){
+      wheel_solid(distances);
+      thumb_well_top();
+      lanyard_corner_hole(distances);
+    }
+
+    edge_numbers_top(distances, apothem(outer_flat_to_flat,n));
   }
 }
 discriminator(distances_mm);
