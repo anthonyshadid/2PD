@@ -46,6 +46,11 @@ struct ContentView: View {
                 }
             }
 
+            Section("Presets") {
+                Button("Fine  (0–8 mm)") { applyPreset(["0","2","3","4","5","6","7","8"]) }
+                Button("Broad (0–15 mm)") { applyPreset(["0","9","10","11","12","13","14","15"]) }
+            }
+
             Section {
                 Button(action: generate) {
                     Label("Generate STL", systemImage: "square.and.arrow.up")
@@ -70,6 +75,10 @@ struct ContentView: View {
                 ShareSheet(activityItems: [url])
             }
         }
+    }
+
+    private func applyPreset(_ values: [String]) {
+        fields = values
     }
 
     private func generate() {
