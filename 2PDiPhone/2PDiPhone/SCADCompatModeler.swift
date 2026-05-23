@@ -24,7 +24,7 @@ enum STLGenError: Error, LocalizedError {
 
 func generateSCADCompatSTL(distancesMM: [Double]) throws -> URL {
     guard distancesMM.count >= 3 else { throw STLGenError.needAtLeast3 }
-    guard distancesMM.allSatisfy({ $0.isFinite && $0 > 0 }) else { throw STLGenError.badDistances }
+    guard distancesMM.allSatisfy({ $0.isFinite && $0 >= 0 }) else { throw STLGenError.badDistances }
 
     let tris = SCADCompatModeler.makeTris(distances: distancesMM)
     let data = STLWriter.writeASCII(tris: tris, name: "2PD_wheel")
@@ -143,7 +143,8 @@ fileprivate enum SCADCompatModeler {
             let cx = a * cos(angN), cy = a * sin(angN)
             let cosA = cos(angN),   sinA = sin(angN)
 
-            for sign in [+1.0, -1.0] {
+            let signs: [Double] = sep == 0 ? [0.0] : [+1.0, -1.0]
+            for sign in signs {
                 let polyWorld: [V] = profile.map { (lx, ly) in
                     let yShift = ly + sign * sep / 2.0
                     return V(x: cx + lx * cosA - yShift * sinA,

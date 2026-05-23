@@ -70,6 +70,16 @@ struct ContentView: View {
             }
         }
         .navigationTitle("2PD Generator")
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil)
+                }
+            }
+        }
         .sheet(isPresented: $showShare) {
             if let url = shareURL {
                 ShareSheet(activityItems: [url])
