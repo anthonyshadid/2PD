@@ -128,11 +128,12 @@ fileprivate enum SCADCompatModeler {
 
         var tris: [T] = []
 
-        // 1) Body plate with lanyard through-hole
-        tris += extrudePolygonWithHole(
+        // 1) Body plate + thumb-well pocket
+        tris += makeBodyTris(
             outer: bodyPoly,
-            holeCx: lCx, holeCy: lCy, holeR: lanyard_hole_d / 2.0,
-            z0: 0.0, z1: base_thickness
+            lanyardCx: lCx, lanyardCy: lCy, lanyardR: lanyard_hole_d / 2.0,
+            hubR: hub_diameter / 2.0,
+            z0: 0.0, z1: base_thickness, pocketDepth: thumb_depth
         )
 
         // 2) Tapered prongs, one pair per face, CCW angle order matching SCAD
@@ -155,10 +156,7 @@ fileprivate enum SCADCompatModeler {
             }
         }
 
-        // 3) Thumb-well pocket (top surface)
-        tris += pocketTop(radius: hub_diameter / 2.0, zTop: base_thickness, depth: thumb_depth)
-
-        // 4) Raised labels on top only, matching SCAD edge_numbers_top
+        // 3) Raised labels on top only, matching SCAD edge_numbers_top
         //    SCAD: translate to label position, rotate([0,0,angN-90]), linear_extrude(label_depth) text()
         //    After rotate(angN-90): text horizontal = (sin(angN), -cos(angN))
         //                          text vertical    = (cos(angN),  sin(angN))
@@ -263,73 +261,119 @@ fileprivate enum SCADCompatModeler {
         return pts
     }
 
-    // ---- Body plate with circular through-hole ----
-    private static func extrudePolygonWithHole(
+    // ---- Body plate + thumb-well pocket (watertight) ----
+    // Bottom face: octagon - lanyard hole
+    // Top face:    octagon - hub circle - lanyard hole
+    // Side faces:  outer walls, lanyard hole walls, hub cylinder wall, pocket bottom
+    private static func makeBodyTris(
         outer: [V],
-        holeCx: Double, holeCy: Double, holeR: Double,
-        z0: Double, z1: Double
+        lanyardCx: Double, lanyardCy: Double, lanyardR: Double,
+        hubR: Double,
+        z0: Double, z1: Double, pocketDepth: Double
     ) -> [T] {
-        let m = fnRound
+        let n  = outer.count
+        let m  = fnRound
+        let pz = z1 - pocketDepth
 
-        // Hole polygon: CW (because it's a hole inside a CCW outer polygon)
-        let holePts: [(Double, Double)] = (0..<m).map { i in
-            let ang = -2.0 * .pi * Double(i) / Double(m)   // CW
-            return (holeCx + holeR * cos(ang), holeCy + holeR * sin(ang))
-        }
-
-        // Merge outer (CCW) + hole (CW) via single bridge (no duplicate vertices)
-        // Find closest pair
-        var minD = Double.infinity, bestI = 0, bestJ = 0
-        for i in 0..<outer.count {
-            for j in 0..<m {
-                let dx = outer[i].x - holePts[j].0
-                let dy = outer[i].y - holePts[j].1
-                let d  = dx*dx + dy*dy
-                if d < minD { minD = d; bestI = i; bestJ = j }
+        func cwCircle(cx: Double, cy: Double, r: Double) -> [(Double, Double)] {
+            (0..<m).map { i in
+                let a = -2.0 * .pi * Double(i) / Double(m)
+                return (cx + r * cos(a), cy + r * sin(a))
             }
         }
 
-        // Merged polygon: outer from bestI (CCW), then hole from bestJ (CW)
-        let n = outer.count
-        var merged: [(Double, Double)] = []
-        for k in 0..<n { merged.append((outer[(bestI+k) % n].x, outer[(bestI+k) % n].y)) }
-        for k in 0..<m { merged.append(holePts[(bestJ+k) % m]) }
+        let outerPts   = outer.map { ($0.x, $0.y) }
+        let lanyardPts = cwCircle(cx: lanyardCx, cy: lanyardCy, r: lanyardR)
+        let hubPts     = cwCircle(cx: 0, cy: 0, r: hubR)
 
-        let faceTris = earClip(merged)
+        // Bottom face: octagon - lanyard hole
+        let botTris = earClip(mergeHole(outer: outerPts, hole: lanyardPts))
+
+        // Top face: octagon - hub circle - lanyard hole
+        let topTris = earClip(
+            mergeHole(outer: mergeHole(outer: outerPts, hole: hubPts), hole: lanyardPts)
+        )
 
         var ts: [T] = []
 
-        // Top face (z1)
-        for (a, b, c) in faceTris {
-            ts.append(T(a: V(x: a.0, y: a.1, z: z1),
-                        b: V(x: b.0, y: b.1, z: z1),
-                        c: V(x: c.0, y: c.1, z: z1)))
-        }
-        // Bottom face (z0, reversed winding)
-        for (a, b, c) in faceTris {
+        // Bottom face (-z normal = reversed winding)
+        for (a, b, c) in botTris {
             ts.append(T(a: V(x: a.0, y: a.1, z: z0),
                         b: V(x: c.0, y: c.1, z: z0),
                         c: V(x: b.0, y: b.1, z: z0)))
         }
 
-        // Outer side walls
-        let ob = outer.map { V(x: $0.x, y: $0.y, z: z0) }
-        let ot = outer.map { V(x: $0.x, y: $0.y, z: z1) }
-        for i in 0..<n {
-            let j = (i+1) % n
-            ts += quad(ob[i], ob[j], ot[j], ot[i])
+        // Top face (+z normal)
+        for (a, b, c) in topTris {
+            ts.append(T(a: V(x: a.0, y: a.1, z: z1),
+                        b: V(x: b.0, y: b.1, z: z1),
+                        c: V(x: c.0, y: c.1, z: z1)))
         }
 
-        // Inner cylinder wall (normals point inward toward hole axis)
-        let hb = holePts.map { V(x: $0.0, y: $0.1, z: z0) }
-        let ht = holePts.map { V(x: $0.0, y: $0.1, z: z1) }
+        // Outer octagon walls (outward normals)
+        for i in 0..<n {
+            let j = (i+1) % n
+            ts += quad(
+                V(x: outer[i].x, y: outer[i].y, z: z0),
+                V(x: outer[j].x, y: outer[j].y, z: z0),
+                V(x: outer[j].x, y: outer[j].y, z: z1),
+                V(x: outer[i].x, y: outer[i].y, z: z1)
+            )
+        }
+
+        // Lanyard hole walls (inward normals = toward hole axis)
+        // CW-ordered pts: going i→j is CW; quad(i,j,j_top,i_top) gives inward normals
         for i in 0..<m {
             let j = (i+1) % m
-            // CW hole polygon → reverse quad winding for inward-facing normal
-            ts += quad(hb[j], hb[i], ht[i], ht[j])
+            ts += quad(
+                V(x: lanyardPts[i].0, y: lanyardPts[i].1, z: z0),
+                V(x: lanyardPts[j].0, y: lanyardPts[j].1, z: z0),
+                V(x: lanyardPts[j].0, y: lanyardPts[j].1, z: z1),
+                V(x: lanyardPts[i].0, y: lanyardPts[i].1, z: z1)
+            )
+        }
+
+        // Hub pocket cylinder wall (z=pz → z=z1, inward normals)
+        // Using CCW angles; reversing i,j order gives inward normals
+        for i in 0..<m {
+            let a0 = 2.0 * .pi * Double(i)   / Double(m)
+            let a1 = 2.0 * .pi * Double(i+1) / Double(m)
+            let hb0 = V(x: hubR*cos(a0), y: hubR*sin(a0), z: pz)
+            let hb1 = V(x: hubR*cos(a1), y: hubR*sin(a1), z: pz)
+            let ht0 = V(x: hubR*cos(a0), y: hubR*sin(a0), z: z1)
+            let ht1 = V(x: hubR*cos(a1), y: hubR*sin(a1), z: z1)
+            ts += quad(hb1, hb0, ht0, ht1)  // reversed = inward normals
+        }
+
+        // Hub pocket bottom disc (z=pz, +z normal)
+        let hc = V(x: 0, y: 0, z: pz)
+        for i in 0..<m {
+            let a0 = 2.0 * .pi * Double(i)   / Double(m)
+            let a1 = 2.0 * .pi * Double(i+1) / Double(m)
+            ts.append(T(a: hc,
+                        b: V(x: hubR*cos(a0), y: hubR*sin(a0), z: pz),
+                        c: V(x: hubR*cos(a1), y: hubR*sin(a1), z: pz)))
         }
 
         return ts
+    }
+
+    private static func mergeHole(
+        outer: [(Double, Double)], hole: [(Double, Double)]
+    ) -> [(Double, Double)] {
+        let n = outer.count, m = hole.count
+        var minD = Double.infinity, bi = 0, bj = 0
+        for i in 0..<n {
+            for j in 0..<m {
+                let dx = outer[i].0 - hole[j].0, dy = outer[i].1 - hole[j].1
+                let d = dx*dx + dy*dy
+                if d < minD { minD = d; bi = i; bj = j }
+            }
+        }
+        var result: [(Double, Double)] = []
+        for k in 0..<n { result.append(outer[(bi+k) % n]) }
+        for k in 0..<m { result.append(hole[(bj+k) % m]) }
+        return result
     }
 
     // ---- Ear clipper (O(n²) per clip, fine for ≤100 vertices) ----
@@ -410,30 +454,6 @@ fileprivate enum SCADCompatModeler {
             A += p[i].x * p[j].y - p[j].x * p[i].y
         }
         return 0.5 * A
-    }
-
-    // ---- Thumb-well pocket (top surface) ----
-    private static func pocketTop(radius: Double, zTop: Double, depth: Double) -> [T] {
-        let z0 = zTop - depth
-        let z1 = zTop
-        let dA = 2.0 * .pi / Double(fnRound)
-        var ts: [T] = []
-        for i in 0..<fnRound {
-            let a0 = Double(i) * dA, a1 = Double(i+1) * dA
-            let p00 = V(x: radius*cos(a0), y: radius*sin(a0), z: z0)
-            let p01 = V(x: radius*cos(a1), y: radius*sin(a1), z: z0)
-            let p10 = V(x: radius*cos(a0), y: radius*sin(a0), z: z1)
-            let p11 = V(x: radius*cos(a1), y: radius*sin(a1), z: z1)
-            ts += quad(p00, p01, p11, p10)
-        }
-        let c = V(x: 0, y: 0, z: z0)
-        for i in 0..<fnRound {
-            let a0 = Double(i) * dA, a1 = Double(i+1) * dA
-            let p0 = V(x: radius*cos(a0), y: radius*sin(a0), z: z0)
-            let p1 = V(x: radius*cos(a1), y: radius*sin(a1), z: z0)
-            ts.append(T(a: c, b: p1, c: p0))
-        }
-        return ts
     }
 
     // ---- Raised 7-segment labels (matching SCAD linear_extrude + text) ----
