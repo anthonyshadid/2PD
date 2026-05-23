@@ -1,194 +1,185 @@
+//
+//  AboutView.swift
+//  2PDiPhone
+//
+//  Created by Keyvon R on 11/9/25.
+//
+
 import SwiftUI
 
 struct AboutView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
 
-                // Header / Branding
-                HStack(spacing: 12) {
+                // Header
+                HStack(spacing: 14) {
                     Image(systemName: "ruler")
-                        .font(.system(size: 34, weight: .semibold))
-                    VStack(alignment: .leading) {
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("2PD Generator")
-                            .font(.title.bold())
-                        Text(appVersionString())
-                            .font(.subheadline)
+                            .font(.title2.bold())
+                        Text(versionString())
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.bottom, 4)
 
+                Divider()
+
                 // About
-                SectionHeader("About")
-                Text("""
-2PD Generator is a simple, offline iOS tool that creates a printable wheel for **two-point discrimination** testing. Enter **any 8 distances (mm)** and the app generates an **STL** you can save, AirDrop, or send to your slicer.
+                InfoSection("About") {
+                    Text("A compact, offline tool for generating printable two-point discrimination wheels. Enter the 8 distances you want, tap Generate, and share the STL with your slicer.")
+                }
 
-This app is inspired by the open-source project **2PD** (anthonyshadid/2PD) and re-implements the modeler natively in Swift to run fully on-device (no OpenSCAD or server).
-""")
+                InfoSection("Intended Use") {
+                    Text("Built for education, research prototyping, and demonstration. This app has not been evaluated or cleared as a medical device. For clinical use, confirm compliance with your institution's policies and applicable regulations.")
+                }
 
-                // Intended Use
-                SectionHeader("Intended Use")
-                Text("""
-Designed for **education, research prototyping, and demonstration**. This app has **not** been evaluated or cleared as a medical device. For clinical use, obtain approval per your institution’s policies and applicable regulations.
-""")
+                InfoSection("Quick Start") {
+                    BulletList(items: [
+                        "Enter 8 distances in millimeters.",
+                        "Tap Generate STL.",
+                        "Save to Files, AirDrop, or open in your slicer.",
+                        "Print flat on the bed (see Printing Guide)."
+                    ])
+                }
 
-                // Quick Start
-                SectionHeader("Quick Start")
-                BulletList(items: [
-                    "Open the app and enter **8 distances** in millimeters (e.g., 2, 3, 4, 5, 8, 12, 18, 25).",
-                    "Tap **Generate STL**. A share sheet appears.",
-                    "Choose **Save to Files**, AirDrop, email, or open in your slicer.",
-                    "3D-print the wheel (see Printing Guide)."
-                ])
+                InfoSection("Printing Guide") {
+                    BulletList(items: [
+                        "Material: PLA or PETG.",
+                        "Layer height: 0.16–0.20 mm.",
+                        "2–3 perimeter walls, 20–40% infill.",
+                        "Orient the wheel flat on the print bed.",
+                        "Inspect tip integrity; lightly deburr if needed."
+                    ])
+                }
 
-                // Printing Guide
-                SectionHeader("Printing Guide")
-                BulletList(items: [
-                    "Material: PLA or PETG.",
-                    "Layer height: 0.16–0.20 mm; smaller tips benefit from finer layers.",
-                    "Walls: 2–3 perimeters; Infill: 20–40%.",
-                    "Orientation: print **flat** (wheel lying on the bed).",
-                    "Check tip integrity; lightly deburr if needed.",
-                    "Color/labels: you can add labels with a marker or request an engraved-text build."
-                ])
+                InfoSection("Cleaning & Handling") {
+                    BulletList(items: [
+                        "Wipe with 70% isopropyl alcohol before and after use.",
+                        "Avoid heat and harsh solvents; printed plastic can deform.",
+                        "Retire the wheel if any tips are broken or deformed."
+                    ])
+                }
 
-                // Cleaning & Handling
-                SectionHeader("Cleaning & Handling")
-                BulletList(items: [
-                    "Wipe with 70% isopropyl alcohol before and after demonstration.",
-                    "Avoid harsh sterilization/heat; printed plastics can deform.",
-                    "Inspect tips regularly; discontinue use if damaged."
-                ])
+                InfoSection("Model Parameters") {
+                    ParameterGrid(parameters: [
+                        ("Wheel diameter", "40 mm flat-to-flat"),
+                        ("Body thickness", "3 mm"),
+                        ("Prong length", "7 mm"),
+                        ("Prong thickness", "1.4 mm"),
+                        ("Hub diameter", "17 mm"),
+                        ("Labels", "Raised, top face"),
+                        ("Lanyard hole", "Ø 3.5 mm, corner")
+                    ])
+                }
 
-                // Validation & Accuracy
-                SectionHeader("Validation & Accuracy")
-                Text("""
-Distances are modeled directly from your inputs. Final printed distances can vary due to **printer calibration**, **shrinkage**, **slicer settings**, and **post-processing**. If accuracy matters, verify with calipers and tune your printer steps-per-mm and flow rate. Consider re-printing critical heads based on measurements.
-""")
+                InfoSection("Accuracy") {
+                    Text("Distances are modeled from your inputs. Final printed values depend on printer calibration, material shrinkage, and slicer settings. Verify with calipers and tune flow rate if accuracy is critical.")
+                }
 
-                // Parameters (defaults)
-                SectionHeader("Model Parameters (Defaults)")
-                ParameterGrid(parameters: [
-                    ("Wheel radius", "35.0 mm"),
-                    ("Hub radius", "14.0 mm"),
-                    ("Thickness", "3.0 mm"),
-                    ("Tip radius", "0.7 mm"),
-                    ("Tip length", "3.0 mm"),
-                    ("Facets", "48")
-                ])
-                Text("Need different ergonomics or labeling? Ask us to enable **engraved text**, **alternative tip profiles**, or **extra heads**.")
+                InfoSection("Troubleshooting") {
+                    BulletList(items: [
+                        "\"At least 3 distances\" error — check that all 8 fields contain numbers (comma or period as decimal separator).",
+                        "STL won't open in slicer — try saving to Files first, then import.",
+                        "Tips too fragile — increase infill or print with more perimeter walls.",
+                        "Distances off — calibrate X/Y steps and check for elephant's foot."
+                    ])
+                }
 
-                // Troubleshooting
-                SectionHeader("Troubleshooting")
-                BulletList(items: [
-                    "“Please enter 8 numeric distances” → ensure all 8 fields are numbers (use dot or comma as decimal).",
-                    "STL won’t open → try saving to Files first, then import into your slicer.",
-                    "Tips too fragile → increase tip radius or print with more perimeters.",
-                    "Distances off → calibrate printer (X/Y steps), reduce elephant’s foot (use brim, z-offset tuning), and re-measure."
-                ])
+                InfoSection("Privacy") {
+                    Text("No analytics or personal data are collected. Generated files are stored temporarily on-device until you export or delete them.")
+                }
 
-                // FAQ
-                SectionHeader("FAQ")
-                FAQItem(q: "What units are used?", a: "Millimeters (mm). STL is unitless, but we follow mm convention.")
-                FAQItem(q: "Can I get labels on each head?", a: "Yes. We can add engraved numerals or tick marks in a future update.")
-                FAQItem(q: "Does this need the internet?", a: "No. All modeling is done on-device.")
-                FAQItem(q: "Can I share directly to my slicer?", a: "Use the share sheet → Open in your slicer app or Save to Files, then import.")
+                InfoSection("Attribution") {
+                    Text("Inspired by the open-source 2PD project (anthonyshadid/2PD). The on-device STL modeler is a native Swift reimplementation.")
+                }
 
-                // Privacy
-                SectionHeader("Privacy")
-                Text("""
-The app does not collect analytics or personal data. Generated files are stored temporarily on-device until you export or delete them.
-""")
+                InfoSection("Contributors") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Keyvon Rashidi")
+                        Text("Anthony Shadid")
+                    }
+                    .foregroundStyle(.secondary)
+                }
 
-                // Attribution & License
-                SectionHeader("Attribution")
-                Text("""
-Based on ideas from the open-source project **2PD** (anthonyshadid/2PD). All trademarks and references belong to their respective owners.
-""")
-
-                // Contributors
-                SectionHeader("Contributors")
-                Text("""
-                **Keyvon Rashidi**  
-                
-
-                **Anthony Shadid**  
-                
-                """)
-                
-                // Legal
-                SectionHeader("Disclaimer")
-                Text("""
-This software is provided “as is,” without warranties of any kind. Not for diagnostic use unless validated and approved by your institution. Use at your own risk.
-""")
+                InfoSection("Disclaimer") {
+                    Text("Provided as-is, without warranties of any kind. Not for diagnostic use unless validated and approved by your institution.")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                }
             }
             .padding(20)
         }
-        .navigationTitle("About & Instructions")
+        .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // Helpers
-    private func appVersionString() -> String {
+    private func versionString() -> String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         return "Version \(v) (\(b))"
     }
 }
 
-// MARK: - UI Bits
+// MARK: - Components
 
-fileprivate struct SectionHeader: View {
+private struct InfoSection<Content: View>: View {
     let title: String
-    init(_ title: String) { self.title = title }
+    let content: Content
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
     var body: some View {
-        Text(title)
-            .font(.headline)
-            .padding(.top, 4)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .kerning(0.5)
+            content
+        }
     }
 }
 
-fileprivate struct BulletList: View {
+private struct BulletList: View {
     let items: [String]
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(items, id: \.self) { item in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("•")
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text("·")
+                        .foregroundStyle(.secondary)
+                        .fontWeight(.bold)
                     Text(item)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
     }
 }
 
-fileprivate struct ParameterGrid: View {
+private struct ParameterGrid: View {
     let parameters: [(String, String)]
     var body: some View {
-        VStack(spacing: 8) {
-            ForEach(Array(parameters.enumerated()), id: \.offset) { _, pair in
+        VStack(spacing: 0) {
+            ForEach(Array(parameters.enumerated()), id: \.offset) { idx, pair in
                 HStack {
                     Text(pair.0)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 12)
                     Text(pair.1)
-                        .font(.callout)
+                        .font(.callout.monospacedDigit())
                 }
-                Divider()
+                .padding(.vertical, 7)
+                if idx < parameters.count - 1 {
+                    Divider()
+                }
             }
         }
-    }
-}
-
-fileprivate struct FAQItem: View {
-    let q: String, a: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(q).font(.subheadline.bold())
-            Text(a)
-        }
-        .padding(.vertical, 4)
     }
 }

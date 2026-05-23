@@ -1,15 +1,12 @@
-//2PD
+//
+//  ContentView.swift
 //  2PDiPhone
 //
 //  Created by Keyvon R on 11/9/25.
 //
 
-
 import SwiftUI
 import UniformTypeIdentifiers
-
-
-// MARK: - UI
 
 struct ContentView: View {
     @State private var fields = Array(repeating: "", count: 8)
@@ -17,31 +14,62 @@ struct ContentView: View {
     @State private var showShare = false
     @State private var errorText: String?
 
+    private var filledCount: Int {
+        fields.filter {
+            Double($0.replacingOccurrences(of: ",", with: ".")
+                      .trimmingCharacters(in: .whitespaces)) != nil
+        }.count
+    }
+
     var body: some View {
         Form {
-            Section("Enter any 8 custom distances (mm)") {
-                ForEach(0..<8, id: \.self) { i in
-                    TextField("Distance \(i+1)", text: $fields[i])
-                        .keyboardType(.decimalPad)
-                }
-            }
             Section {
-                Button("Generate STL") { generate() }
-                    .buttonStyle(.borderedProminent)
-
-                // for quick sanity testing:
-                Button("Quick Test (2,3,4,5,8,12,18,25)") {
-                    fields = ["2","3","4","5","8","12","18","25"]; generate()
+                ForEach(0..<8, id: \.self) { i in
+                    HStack(spacing: 10) {
+                        Text("\(i + 1)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .frame(width: 18, alignment: .trailing)
+                        TextField("–", text: $fields[i])
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                        Text("mm")
+                            .foregroundStyle(.tertiary)
+                            .font(.callout)
+                    }
+                }
+            } header: {
+                Text("Distances")
+            } footer: {
+                if filledCount > 0 && filledCount < 8 {
+                    Text("\(filledCount) of 8 entered")
                 }
             }
-            if let errorText { Text(errorText).foregroundStyle(.red) }
+
+            Section {
+                Button(action: generate) {
+                    Label("Generate STL", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(filledCount < 3)
+            }
+
+            if let errorText {
+                Section {
+                    Label(errorText, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.callout)
+                }
+            }
         }
+        .navigationTitle("2PD Generator")
         .sheet(isPresented: $showShare) {
             if let url = shareURL {
                 ShareSheet(activityItems: [url])
             }
         }
-        .navigationTitle("2PD Generator")
     }
 
     private func generate() {
@@ -49,7 +77,6 @@ struct ContentView: View {
         let distances = fields
             .map { $0.replacingOccurrences(of: ",", with: ".") }
             .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
-
         do {
             let url = try generateSCADCompatSTL(distancesMM: distances)
             shareURL = url
@@ -67,4 +94,3 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
-

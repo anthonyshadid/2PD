@@ -1,10 +1,11 @@
 
 //
-//  STLModeler.swift
+//  SCADCompatModeler.swift
 //  2PDiPhone
-
+//
 //  Created by Keyvon R on 11/9/25.
-//  Updated to match flat-prong SCAD with 7-seg engraved numbers on both sides
+//  Updated to match discriminator.scad: tapered prongs (hull of 3 circles),
+//  prong_thickness=1.4, raised labels on top, lanyard corner hole.
 //
 
 import Foundation
@@ -21,7 +22,6 @@ enum STLGenError: Error, LocalizedError {
     }
 }
 
-/// Generates STL that mirrors the current SCAD (flat prongs + engraved 7-seg digits both sides).
 func generateSCADCompatSTL(distancesMM: [Double]) throws -> URL {
     guard distancesMM.count >= 3 else { throw STLGenError.needAtLeast3 }
     guard distancesMM.allSatisfy({ $0.isFinite && $0 > 0 }) else { throw STLGenError.badDistances }
@@ -39,11 +39,12 @@ func generateSCADCompatSTL(distancesMM: [Double]) throws -> URL {
 // Geometry core --------------------------------------------------------------
 
 fileprivate struct V { var x: Double, y: Double, z: Double }
+fileprivate typealias V2 = (Double, Double)
 
 fileprivate extension V {
-    static func +(l: V, r: V) -> V { .init(x: l.x + r.x, y: l.y + r.y, z: l.z + r.z) }
-    static func -(l: V, r: V) -> V { .init(x: l.x - r.x, y: l.y - r.y, z: l.z - r.z) }
-    static func *(l: V, s: Double) -> V { .init(x: l.x * s, y: l.y * s, z: l.z * s) }
+    static func +(l: V, r: V) -> V { .init(x: l.x+r.x, y: l.y+r.y, z: l.z+r.z) }
+    static func -(l: V, r: V) -> V { .init(x: l.x-r.x, y: l.y-r.y, z: l.z-r.z) }
+    static func *(l: V, s: Double) -> V { .init(x: l.x*s, y: l.y*s, z: l.z*s) }
 }
 
 fileprivate struct T { var a: V, b: V, c: V }
@@ -51,16 +52,14 @@ fileprivate struct T { var a: V, b: V, c: V }
 fileprivate enum STLWriter {
     static func writeASCII(tris: [T], name: String) -> Data {
         func normal(_ t: T) -> V {
-            let u = t.b - t.a
-            let v = t.c - t.a
-            let nx = u.y * v.z - u.z * v.y
-            let ny = u.z * v.x - u.x * v.z
-            let nz = u.x * v.y - u.y * v.x
-            let L = max(1e-12, sqrt(nx * nx + ny * ny + nz * nz))
-            return .init(x: nx / L, y: ny / L, z: nz / L)
+            let u = t.b - t.a, v = t.c - t.a
+            let nx = u.y*v.z - u.z*v.y
+            let ny = u.z*v.x - u.x*v.z
+            let nz = u.x*v.y - u.y*v.x
+            let L = max(1e-12, sqrt(nx*nx+ny*ny+nz*nz))
+            return .init(x: nx/L, y: ny/L, z: nz/L)
         }
         func f(_ v: Double) -> String { String(format: "%.6f", v) }
-
         var s = "solid \(name)\n"
         for t in tris {
             let n = normal(t)
@@ -69,8 +68,7 @@ fileprivate enum STLWriter {
             s += "   vertex \(f(t.a.x)) \(f(t.a.y)) \(f(t.a.z))\n"
             s += "   vertex \(f(t.b.x)) \(f(t.b.y)) \(f(t.b.z))\n"
             s += "   vertex \(f(t.c.x)) \(f(t.c.y)) \(f(t.c.z))\n"
-            s += "  endloop\n"
-            s += " endfacet\n"
+            s += "  endloop\n endfacet\n"
         }
         s += "endsolid \(name)\n"
         return Data(s.utf8)
@@ -80,154 +78,321 @@ fileprivate enum STLWriter {
 // SCAD-compatible modeler ----------------------------------------------------
 
 fileprivate enum SCADCompatModeler {
-    // ---- Parameters (matching your SCAD defaults) ----
-    static let outer_flat_to_flat = 67.0
+
+    // ---- Parameters matching discriminator.scad defaults ----
+    static let outer_flat_to_flat = 40.0
     static let base_thickness     = 3.0
+    static let prong_thickness    = 1.4     // prongs are shorter than body
 
-    // Flat prongs
-    static let spike_length  = 16.0
-    static let base_d        = 2.2
-    static let root_overlap  = 0.0
+    static let spike_length = 7.0
+    static let base_d       = 3.0
+    static let shank_d      = 1.4
+    static let tip_d        = 0.15
+    static let root_overlap = 0.7
 
-    // Hub / thumb well
-    static let hub_diameter  = 20.0
-    static let thumb_depth   = 0.5
+    static let hub_diameter = 17.0
+    static let thumb_depth  = 0.5
 
-    // Labels (7-segment, engraved both sides)
-    static let label_size    = 4.0
-    static let label_depth   = 0.5
-    static let label_radial  = 0.80
+    static let label_size   = 4.3
+    static let label_depth  = 0.5
+    static let label_radial = 0.80
 
-    // Tessellation
-    static let fnPolygon     = 96
-    static let fnRound       = 96
+    static let lanyard_hole_d     = 3.5
+    static let lanyard_hole_inset = 3.35
 
-    // Utility (same meaning as SCAD)
-    private static func apothem(acrossFlats: Double, n: Int) -> Double {
-        acrossFlats / 2.0
-    }
+    static let fnRound = 72
+
+    // ---- Utility ----
+    private static func apothem(acrossFlats: Double, n: Int) -> Double { acrossFlats / 2.0 }
     private static func circRadius(acrossFlats: Double, n: Int) -> Double {
         acrossFlats / (2.0 * cos(.pi / Double(n)))
     }
 
-    // Safe engraving depth (so top+bottom never meet)
-    private static func engrDepth() -> Double {
-        let maxDepth = base_thickness / 2.0 - 0.05
-        return min(label_depth, maxDepth)
-    }
-
-    // Main entry
+    // ---- Main entry ----
     static func makeTris(distances: [Double]) -> [T] {
-        let n = distances.count
-        let a = apothem(acrossFlats: outer_flat_to_flat, n: n)
-        let r = circRadius(acrossFlats: outer_flat_to_flat, n: n)
+        let n  = distances.count
+        let a  = apothem(acrossFlats: outer_flat_to_flat, n: n)
+        let r  = circRadius(acrossFlats: outer_flat_to_flat, n: n)
 
-        var tris: [T] = []
-
-        // 1) n-gon base plate
-        let basePoly2D: [V] = (0..<n).map { i in
+        // Octagon corners (CCW), matching SCAD polygon_plate
+        let bodyPoly: [V] = (0..<n).map { i in
             let ang = 2.0 * .pi * Double(i) / Double(n)
             return V(x: r * cos(ang), y: r * sin(ang), z: 0)
         }
-        tris += extrudePolygon(basePoly2D, z0: 0.0, z1: base_thickness)
 
-        // 2) Flat prongs (triangles) at each face, two per edge (sep = distance)
+        // Lanyard hole center: at corner between face 0 and face 1
+        let lanyardAng = 2.0 * .pi / Double(n)
+        let lR  = r - lanyard_hole_inset
+        let lCx = lR * cos(lanyardAng)
+        let lCy = lR * sin(lanyardAng)
+
+        var tris: [T] = []
+
+        // 1) Body plate with lanyard through-hole
+        tris += extrudePolygonWithHole(
+            outer: bodyPoly,
+            holeCx: lCx, holeCy: lCy, holeR: lanyard_hole_d / 2.0,
+            z0: 0.0, z1: base_thickness
+        )
+
+        // 2) Tapered prongs, one pair per face, CCW angle order matching SCAD
+        let profile = prongProfile2D()
         for i in 0..<n {
-            let sep = distances[i]
-            let angN = -2.0 * .pi * (Double(i) + 0.5) / Double(n)
-            let cx = a * cos(angN)
-            let cy = a * sin(angN)
+            let sep  = distances[i]
+            let angN = 2.0 * .pi * (Double(i) + 0.5) / Double(n)   // CCW
+            let cx = a * cos(angN), cy = a * sin(angN)
+            let cosA = cos(angN),   sinA = sin(angN)
 
-            let cosA = cos(angN)
-            let sinA = sin(angN)
-
-            // local 2D vertices of prong triangle in (x,y) before rotation/translation
-            let localVerts: [(Double, Double)] = [
-                (-root_overlap, -base_d / 2.0),
-                (-root_overlap,  base_d / 2.0),
-                ( spike_length,  0.0)
-            ]
-
-            // two prongs per face: ±sep/2 along local "y"
             for sign in [+1.0, -1.0] {
-                let polyWorld: [V] = localVerts.map { (lx, ly) in
+                let polyWorld: [V] = profile.map { (lx, ly) in
                     let yShift = ly + sign * sep / 2.0
-                    // rotate by angN, then translate to (cx,cy)
-                    let wx = cx + lx * cosA - yShift * sinA
-                    let wy = cy + lx * sinA + yShift * cosA
-                    return V(x: wx, y: wy, z: 0.0)
+                    return V(x: cx + lx * cosA - yShift * sinA,
+                             y: cy + lx * sinA + yShift * cosA,
+                             z: 0.0)
                 }
-                tris += extrudePolygon(polyWorld, z0: 0.0, z1: base_thickness)
+                tris += extrudePolygon(polyWorld, z0: 0.0, z1: prong_thickness)
             }
         }
 
-        // 3) Thumb well pocket (top)
-        tris += pocketTop(radius: hub_diameter / 2.0,
-                          zTop: base_thickness,
-                          depth: thumb_depth)
+        // 3) Thumb-well pocket (top surface)
+        tris += pocketTop(radius: hub_diameter / 2.0, zTop: base_thickness, depth: thumb_depth)
 
-        // 4) Engraved numbers (7-seg) on top and bottom
-        let depth = engrDepth()
+        // 4) Raised labels on top only, matching SCAD edge_numbers_top
+        //    SCAD: translate to label position, rotate([0,0,angN-90]), linear_extrude(label_depth) text()
+        //    After rotate(angN-90): text horizontal = (sin(angN), -cos(angN))
+        //                          text vertical    = (cos(angN),  sin(angN))
+        let zLabel = base_thickness - 0.01
         for i in 0..<n {
             let value = distances[i]
-            let angN = -2.0 * .pi * (Double(i) + 0.5) / Double(n)
+            let angN  = 2.0 * .pi * (Double(i) + 0.5) / Double(n)
             let labelR = label_radial * a
+            let cx = labelR * cos(angN), cy = labelR * sin(angN)
 
-            let cx = labelR * cos(angN)
-            let cy = labelR * sin(angN)
+            let uAxis = V(x:  sin(angN), y: -cos(angN), z: 0)
+            let vAxis = V(x:  cos(angN), y:  sin(angN), z: 0)
 
-            // Local glyph axes (xAxis = outward, yAxis = along edge)
-            let xAxis = V(x: cos(angN),  y: sin(angN),  z: 0)
-            let yAxis = V(x: -sin(angN), y: cos(angN),  z: 0)
-
-            // TOP engraving (into top surface: z from top-depth .. top)
-            let centerTop = V(x: cx, y: cy, z: base_thickness)
-            tris += engraveSevenSegmentNumber(value,
-                                              center: centerTop,
-                                              xAxis: xAxis,
-                                              yAxis: yAxis,
-                                              height: label_size,
-                                              z0: base_thickness - depth,
-                                              z1: base_thickness)
-
-            // BOTTOM engraving (into bottom surface: z from 0 .. depth)
-            let centerBottom = V(x: cx, y: cy, z: 0.0)
-            tris += engraveSevenSegmentNumber(value,
-                                              center: centerBottom,
-                                              xAxis: xAxis,
-                                              yAxis: yAxis,
-                                              height: label_size,
-                                              z0: 0.0,
-                                              z1: depth)
+            tris += raiseSevenSegmentNumber(
+                value,
+                center: V(x: cx, y: cy, z: zLabel),
+                uAxis: uAxis, vAxis: vAxis,
+                height: label_size,
+                z0: zLabel, z1: zLabel + label_depth
+            )
         }
 
         return tris
     }
 
-    // MARK: - Primitives / helpers ------------------------------------------
+    // ---- Prong profile: hull of three circles (base, shank, tip) ----
+    //
+    //  C1=(bx,0) r=r1  ←──── external tangent ────→  C2=(sx,0) r=r2  ──→  C3=(tx,0) r=r3
+    //
+    //  For two circles on x-axis, (x1,r1) and (x2,r2), r1>r2:
+    //    sinPhi = (r1-r2)/(x2-x1)
+    //    Upper tangent point on Ci: (xi + ri*sinPhi, ri*cosPhi)  where cosPhi = sqrt(1-sinPhi^2)
+    //    Tangent angle from center: a = atan2(cosPhi, sinPhi)
+    //
+    private static func prongProfile2D() -> [(Double, Double)] {
+        let bx = -root_overlap
+        let sx = spike_length * 0.55
+        let tx = spike_length
+        let r1 = base_d  / 2.0
+        let r2 = shank_d / 2.0
+        let r3 = tip_d   / 2.0
 
+        // Segment C1→C2
+        let d12  = sx - bx
+        let sp12 = (r1 - r2) / d12
+        let cp12 = sqrt(max(0.0, 1.0 - sp12 * sp12))
+        let a12  = atan2(cp12, sp12)
+
+        // Segment C2→C3
+        let d23  = tx - sx
+        let sp23 = (r2 - r3) / d23
+        let cp23 = sqrt(max(0.0, 1.0 - sp23 * sp23))
+        let a23  = atan2(cp23, sp23)
+
+        let nBase = 12
+        let nShank = 3
+        let nTip  = 10
+
+        var pts: [(Double, Double)] = []
+
+        // Base arc: CW from angle -a12 through π to +a12  (the "back" semicircle of C1)
+        // CW parameterization: angle(t) = -a12 + t*(2*a12 - 2π)
+        for j in 0...nBase {
+            let t   = Double(j) / Double(nBase)
+            let ang = -a12 + t * (2.0 * a12 - 2.0 * .pi)
+            pts.append((bx + r1 * cos(ang), r1 * sin(ang)))
+        }
+
+        // Upper tangent C1→C2 (ut2a)
+        pts.append((sx + r2 * sp12, r2 * cp12))
+
+        // Upper shank arc from a12 to a23 on C2
+        for j in 1...nShank {
+            let t   = Double(j) / Double(nShank)
+            let ang = a12 + t * (a23 - a12)
+            pts.append((sx + r2 * cos(ang), r2 * sin(ang)))
+        }
+
+        // Upper tangent C2→C3 (ut3)
+        pts.append((tx + r3 * sp23, r3 * cp23))
+
+        // Tip arc: CW from +a23 through 0 to -a23  (the "forward" tip of C3)
+        for j in 1...nTip {
+            let t   = Double(j) / Double(nTip)
+            let ang = a23 - t * 2.0 * a23
+            pts.append((tx + r3 * cos(ang), r3 * sin(ang)))
+        }
+
+        // Lower tangent C3→C2 (lt2b)
+        pts.append((sx + r2 * sp23, -r2 * cp23))
+
+        // Lower shank arc from -a23 to -a12 on C2
+        for j in 1...nShank {
+            let t   = Double(j) / Double(nShank)
+            let ang = -a23 + t * (a23 - a12)   // from -a23 → -a12
+            pts.append((sx + r2 * cos(ang), r2 * sin(ang)))
+        }
+
+        // Lower tangent C2→C1 (lt1 closes back to start)
+        // (start of next iteration would be the same as pts[0])
+
+        return pts
+    }
+
+    // ---- Body plate with circular through-hole ----
+    private static func extrudePolygonWithHole(
+        outer: [V],
+        holeCx: Double, holeCy: Double, holeR: Double,
+        z0: Double, z1: Double
+    ) -> [T] {
+        let m = fnRound
+
+        // Hole polygon: CW (because it's a hole inside a CCW outer polygon)
+        let holePts: [(Double, Double)] = (0..<m).map { i in
+            let ang = -2.0 * .pi * Double(i) / Double(m)   // CW
+            return (holeCx + holeR * cos(ang), holeCy + holeR * sin(ang))
+        }
+
+        // Merge outer (CCW) + hole (CW) via single bridge (no duplicate vertices)
+        // Find closest pair
+        var minD = Double.infinity, bestI = 0, bestJ = 0
+        for i in 0..<outer.count {
+            for j in 0..<m {
+                let dx = outer[i].x - holePts[j].0
+                let dy = outer[i].y - holePts[j].1
+                let d  = dx*dx + dy*dy
+                if d < minD { minD = d; bestI = i; bestJ = j }
+            }
+        }
+
+        // Merged polygon: outer from bestI (CCW), then hole from bestJ (CW)
+        let n = outer.count
+        var merged: [(Double, Double)] = []
+        for k in 0..<n { merged.append((outer[(bestI+k) % n].x, outer[(bestI+k) % n].y)) }
+        for k in 0..<m { merged.append(holePts[(bestJ+k) % m]) }
+
+        let faceTris = earClip(merged)
+
+        var ts: [T] = []
+
+        // Top face (z1)
+        for (a, b, c) in faceTris {
+            ts.append(T(a: V(x: a.0, y: a.1, z: z1),
+                        b: V(x: b.0, y: b.1, z: z1),
+                        c: V(x: c.0, y: c.1, z: z1)))
+        }
+        // Bottom face (z0, reversed winding)
+        for (a, b, c) in faceTris {
+            ts.append(T(a: V(x: a.0, y: a.1, z: z0),
+                        b: V(x: c.0, y: c.1, z: z0),
+                        c: V(x: b.0, y: b.1, z: z0)))
+        }
+
+        // Outer side walls
+        let ob = outer.map { V(x: $0.x, y: $0.y, z: z0) }
+        let ot = outer.map { V(x: $0.x, y: $0.y, z: z1) }
+        for i in 0..<n {
+            let j = (i+1) % n
+            ts += quad(ob[i], ob[j], ot[j], ot[i])
+        }
+
+        // Inner cylinder wall (normals point inward toward hole axis)
+        let hb = holePts.map { V(x: $0.0, y: $0.1, z: z0) }
+        let ht = holePts.map { V(x: $0.0, y: $0.1, z: z1) }
+        for i in 0..<m {
+            let j = (i+1) % m
+            // CW hole polygon → reverse quad winding for inward-facing normal
+            ts += quad(hb[j], hb[i], ht[i], ht[j])
+        }
+
+        return ts
+    }
+
+    // ---- Ear clipper (O(n²) per clip, fine for ≤100 vertices) ----
+    private static func earClip(_ poly: [(Double, Double)]) -> [(V2, V2, V2)] {
+        var verts = poly
+        var result: [(V2, V2, V2)] = []
+        var maxIter = verts.count * verts.count + verts.count
+
+        while verts.count >= 3 && maxIter > 0 {
+            maxIter -= 1
+            let cnt = verts.count
+            var clipped = false
+            for i in 0..<cnt {
+                let a = verts[(i + cnt - 1) % cnt]
+                let b = verts[i]
+                let c = verts[(i + 1) % cnt]
+                let cross = (b.0-a.0)*(c.1-a.1) - (b.1-a.1)*(c.0-a.0)
+                if cross <= 1e-10 { continue }  // reflex or degenerate
+                if !earContainsOtherVertex(a: a, b: b, c: c, verts: verts) {
+                    result.append((a, b, c))
+                    verts.remove(at: i)
+                    clipped = true
+                    break
+                }
+            }
+            if !clipped { break }
+        }
+        if verts.count == 3 { result.append((verts[0], verts[1], verts[2])) }
+        return result
+    }
+
+    private static func earContainsOtherVertex(
+        a: V2, b: V2, c: V2, verts: [(Double, Double)]
+    ) -> Bool {
+        for v in verts {
+            if abs(v.0-a.0)<1e-12 && abs(v.1-a.1)<1e-12 { continue }
+            if abs(v.0-b.0)<1e-12 && abs(v.1-b.1)<1e-12 { continue }
+            if abs(v.0-c.0)<1e-12 && abs(v.1-c.1)<1e-12 { continue }
+            if pointInTriangle2D(v, a, b, c) { return true }
+        }
+        return false
+    }
+
+    private static func pointInTriangle2D(_ p: V2, _ a: V2, _ b: V2, _ c: V2) -> Bool {
+        func s(_ p1: V2, _ p2: V2, _ p3: V2) -> Double {
+            (p1.0-p3.0)*(p2.1-p3.1) - (p2.0-p3.0)*(p1.1-p3.1)
+        }
+        let d1 = s(p,a,b), d2 = s(p,b,c), d3 = s(p,c,a)
+        return !((d1<0||d2<0||d3<0) && (d1>0||d2>0||d3>0))
+    }
+
+    // ---- General polygon extrusion (used for prongs) ----
     private static func extrudePolygon(_ poly0: [V], z0: Double, z1: Double) -> [T] {
-        // poly0: vertices with x,y used; z ignored
         guard poly0.count >= 3 else { return [] }
         var poly = poly0
         if polygonArea(poly) < 0 { poly.reverse() }
 
         let b0 = poly.map { V(x: $0.x, y: $0.y, z: z0) }
         let b1 = poly.map { V(x: $0.x, y: $0.y, z: z1) }
-
         var ts: [T] = []
-
-        // bottom
-        for i in 1..<(b0.count - 1) {
-            ts.append(T(a: b0[0], b: b0[i+1], c: b0[i]))
-        }
-        // top
-        for i in 1..<(b1.count - 1) {
-            ts.append(T(a: b1[0], b: b1[i], c: b1[i+1]))
-        }
-        // sides
+        for i in 1..<(b0.count-1) { ts.append(T(a: b0[0], b: b0[i+1], c: b0[i])) }
+        for i in 1..<(b1.count-1) { ts.append(T(a: b1[0], b: b1[i],   c: b1[i+1])) }
         for i in 0..<poly.count {
-            let j = (i + 1) % poly.count
+            let j = (i+1) % poly.count
             ts += quad(b0[i], b0[j], b1[j], b1[i])
         }
         return ts
@@ -240,121 +405,78 @@ fileprivate enum SCADCompatModeler {
     private static func polygonArea(_ p: [V]) -> Double {
         var A = 0.0
         for i in 0..<p.count {
-            let j = (i + 1) % p.count
+            let j = (i+1) % p.count
             A += p[i].x * p[j].y - p[j].x * p[i].y
         }
         return 0.5 * A
     }
 
-    private static func cross(_ a: V, _ b: V) -> V {
-        .init(x: a.y * b.z - a.z * b.y,
-              y: a.z * b.x - a.x * b.z,
-              z: a.x * b.y - a.y * b.x)
-    }
-
-    private static func normalize(_ v: V) -> V {
-        let L = max(1e-12, sqrt(v.x * v.x + v.y * v.y + v.z * v.z))
-        return .init(x: v.x / L, y: v.y / L, z: v.z / L)
-    }
-
-    // Cylindrical pocket at top (thumb well)
+    // ---- Thumb-well pocket (top surface) ----
     private static func pocketTop(radius: Double, zTop: Double, depth: Double) -> [T] {
         let z0 = zTop - depth
         let z1 = zTop
-        let facets = fnRound
-        let dA = 2.0 * .pi / Double(facets)
+        let dA = 2.0 * .pi / Double(fnRound)
         var ts: [T] = []
-
-        // cylindrical wall
-        for i in 0..<facets {
-            let a0 = Double(i) * dA
-            let a1 = Double(i + 1) * dA
-            let p00 = V(x: radius * cos(a0), y: radius * sin(a0), z: z0)
-            let p01 = V(x: radius * cos(a1), y: radius * sin(a1), z: z0)
-            let p10 = V(x: radius * cos(a0), y: radius * sin(a0), z: z1)
-            let p11 = V(x: radius * cos(a1), y: radius * sin(a1), z: z1)
+        for i in 0..<fnRound {
+            let a0 = Double(i) * dA, a1 = Double(i+1) * dA
+            let p00 = V(x: radius*cos(a0), y: radius*sin(a0), z: z0)
+            let p01 = V(x: radius*cos(a1), y: radius*sin(a1), z: z0)
+            let p10 = V(x: radius*cos(a0), y: radius*sin(a0), z: z1)
+            let p11 = V(x: radius*cos(a1), y: radius*sin(a1), z: z1)
             ts += quad(p00, p01, p11, p10)
         }
-
-        // pocket bottom
         let c = V(x: 0, y: 0, z: z0)
-        for i in 0..<facets {
-            let a0 = Double(i) * dA
-            let a1 = Double(i + 1) * dA
-            let p0 = V(x: radius * cos(a0), y: radius * sin(a0), z: z0)
-            let p1 = V(x: radius * cos(a1), y: radius * sin(a1), z: z0)
+        for i in 0..<fnRound {
+            let a0 = Double(i) * dA, a1 = Double(i+1) * dA
+            let p0 = V(x: radius*cos(a0), y: radius*sin(a0), z: z0)
+            let p1 = V(x: radius*cos(a1), y: radius*sin(a1), z: z0)
             ts.append(T(a: c, b: p1, c: p0))
         }
-
         return ts
     }
 
-    // MARK: - Seven-seg digits (engraved pockets) ----------------------------
+    // ---- Raised 7-segment labels (matching SCAD linear_extrude + text) ----
 
-    private struct SegRect {
-        let u: Double, v: Double, uw: Double, vh: Double
-    }
+    private struct SegRect { let u: Double, v: Double, uw: Double, vh: Double }
 
-    // Numeric seven-seg engraving for a distance value
-    private static func engraveSevenSegmentNumber(_ value: Double,
-                                                  center: V,
-                                                  xAxis: V,
-                                                  yAxis: V,
-                                                  height: Double,
-                                                  z0: Double,
-                                                  z1: Double) -> [T] {
-        let numInt = Int((value).rounded())
-        let text = String(numInt)         // "2", "10", "25", etc.
-
-        let h = height
-        let w = 0.6 * h
+    private static func raiseSevenSegmentNumber(
+        _ value: Double,
+        center: V, uAxis: V, vAxis: V,
+        height: Double,
+        z0: Double, z1: Double
+    ) -> [T] {
+        let numInt = Int(value.rounded())
+        let text   = String(numInt)
+        let h  = height
+        let w  = 0.6 * h
         let sw = 0.18 * h
-        let digitAdvance = w + 0.20 * h
-
+        let digitAdv = w + 0.20 * h
         let chars = Array(text)
-        let totalW = Double(chars.count) * digitAdvance - 0.20 * h
-
+        let totalW = Double(chars.count) * digitAdv - 0.20 * h
         var ts: [T] = []
-
         for (idx, ch) in chars.enumerated() {
-            let cx = -totalW / 2.0 + Double(idx) * digitAdvance + w / 2.0
+            let cx = -totalW/2.0 + Double(idx)*digitAdv + w/2.0
             for rect in sevenSegmentRects(for: ch, w: w, h: h, sw: sw) {
-                let uC = cx + rect.u
-                let vC = rect.v
-                ts += pocketRect(uCenter: uC,
-                                 vCenter: vC,
-                                 uWidth: rect.uw,
-                                 vHeight: rect.vh,
-                                 frameCenter: center,
-                                 xAxis: xAxis,
-                                 yAxis: yAxis,
-                                 z0: z0, z1: z1)
+                ts += raiseRect(
+                    uCenter: cx + rect.u, vCenter: rect.v,
+                    uWidth: rect.uw, vHeight: rect.vh,
+                    frameCenter: center, uAxis: uAxis, vAxis: vAxis,
+                    z0: z0, z1: z1
+                )
             }
         }
         return ts
     }
 
-    // Rectangles for 7-seg segments for a single character
     private static func sevenSegmentRects(for ch: Character,
-                                          w: Double,
-                                          h: Double,
-                                          sw: Double) -> [SegRect] {
-        let topY    = +h / 2.0 - sw / 2.0
-        let midY    = 0.0
-        let botY    = -h / 2.0 + sw / 2.0
-        let upY     = +h / 4.0
-        let downY   = -h / 4.0
-        let leftX   = -w / 2.0 + sw / 2.0
-        let rightX  = +w / 2.0 - sw / 2.0
+                                          w: Double, h: Double, sw: Double) -> [SegRect] {
+        let topY  = +h/2.0 - sw/2.0, midY = 0.0, botY = -h/2.0 + sw/2.0
+        let upY   = +h/4.0, downY = -h/4.0
+        let leftX = -w/2.0 + sw/2.0, rightX = +w/2.0 - sw/2.0
 
-        func H(_ y: Double) -> SegRect {
-            .init(u: 0.0, v: y, uw: w, vh: sw)
-        }
-        func V(_ x: Double, _ y: Double) -> SegRect {
-            .init(u: x, v: y, uw: sw, vh: h / 2.0 - sw / 2.0)
-        }
+        func H(_ y: Double) -> SegRect { .init(u: 0.0, v: y, uw: w, vh: sw) }
+        func VV(_ x: Double, _ y: Double) -> SegRect { .init(u: x, v: y, uw: sw, vh: h/2.0 - sw/2.0) }
 
-        // segment pattern per digit (a,b,c,d,e,f,g)
         let map: [Character: [String]] = [
             "0": ["a","b","c","d","e","f"],
             "1": ["b","c"],
@@ -367,65 +489,49 @@ fileprivate enum SCADCompatModeler {
             "8": ["a","b","c","d","e","f","g"],
             "9": ["a","b","c","d","f","g"]
         ]
-
         var rects: [SegRect] = []
         for s in map[ch] ?? [] {
             switch s {
             case "a": rects.append(H(topY))
             case "d": rects.append(H(botY))
             case "g": rects.append(H(midY))
-            case "b": rects.append(V(rightX, upY))
-            case "c": rects.append(V(rightX, downY))
-            case "e": rects.append(V(leftX,  downY))
-            case "f": rects.append(V(leftX,  upY))
-            default: break
+            case "b": rects.append(VV(rightX, upY))
+            case "c": rects.append(VV(rightX, downY))
+            case "e": rects.append(VV(leftX,  downY))
+            case "f": rects.append(VV(leftX,  upY))
+            default:  break
             }
         }
         return rects
     }
 
-    // Rectangular pocket in glyph-local (u,v) coordinates, extruded in z
-    private static func pocketRect(uCenter: Double,
-                                   vCenter: Double,
-                                   uWidth: Double,
-                                   vHeight: Double,
-                                   frameCenter: V,
-                                   xAxis: V,
-                                   yAxis: V,
-                                   z0: Double,
-                                   z1: Double) -> [T] {
-        let du = uWidth / 2.0
-        let dv = vHeight / 2.0
-
-        // map (u,v) -> world XY: frameCenter + u * yAxis + v * xAxis
-        func toWorldXY(u: Double, v: Double) -> V {
-            frameCenter + yAxis * u + xAxis * v
+    private static func raiseRect(
+        uCenter: Double, vCenter: Double,
+        uWidth: Double, vHeight: Double,
+        frameCenter: V, uAxis: V, vAxis: V,
+        z0: Double, z1: Double
+    ) -> [T] {
+        let du = uWidth/2.0, dv = vHeight/2.0
+        func wp(u: Double, v: Double) -> V {
+            frameCenter + uAxis * u + vAxis * v
         }
-
         let p2D: [V] = [
-            toWorldXY(u: uCenter - du, v: vCenter - dv),
-            toWorldXY(u: uCenter + du, v: vCenter - dv),
-            toWorldXY(u: uCenter + du, v: vCenter + dv),
-            toWorldXY(u: uCenter - du, v: vCenter + dv)
+            wp(u: uCenter-du, v: vCenter-dv),
+            wp(u: uCenter+du, v: vCenter-dv),
+            wp(u: uCenter+du, v: vCenter+dv),
+            wp(u: uCenter-du, v: vCenter+dv)
         ]
-
-        // build as small prism with z from z0 to z1
-        let bottom = p2D.map { V(x: $0.x, y: $0.y, z: z0) }
-        let top    = p2D.map { V(x: $0.x, y: $0.y, z: z1) }
-
+        let bot = p2D.map { V(x: $0.x, y: $0.y, z: z0) }
+        let top = p2D.map { V(x: $0.x, y: $0.y, z: z1) }
         var ts: [T] = []
-        // sides
-        ts += quad(bottom[0], bottom[1], top[1], top[0])
-        ts += quad(bottom[1], bottom[2], top[2], top[1])
-        ts += quad(bottom[2], bottom[3], top[3], top[2])
-        ts += quad(bottom[3], bottom[0], top[0], top[3])
-        // bottom cap
-        ts.append(T(a: bottom[0], b: bottom[2], c: bottom[1]))
-        ts.append(T(a: bottom[0], b: bottom[3], c: bottom[2]))
-        // top cap
+        ts += quad(bot[0], bot[1], top[1], top[0])
+        ts += quad(bot[1], bot[2], top[2], top[1])
+        ts += quad(bot[2], bot[3], top[3], top[2])
+        ts += quad(bot[3], bot[0], top[0], top[3])
+        ts.append(T(a: bot[0], b: bot[2], c: bot[1]))
+        ts.append(T(a: bot[0], b: bot[3], c: bot[2]))
         ts.append(T(a: top[0], b: top[1], c: top[2]))
         ts.append(T(a: top[0], b: top[2], c: top[3]))
-
         return ts
     }
 }

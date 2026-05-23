@@ -12,13 +12,11 @@ struct TwoPDApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                // Tab 1: Generator
                 NavigationStack { ContentView() }
-                    .tabItem { Label("Generator", systemImage: "gearshape") }
+                    .tabItem { Label("Generator", systemImage: "hexagon") }
 
-                // Tab 2: About/Instructions page
                 NavigationStack { AboutView() }
-                    .tabItem { Label("About", systemImage: "info.circle") }
+                    .tabItem { Label("About", systemImage: "book") }
             }
         }
     }
