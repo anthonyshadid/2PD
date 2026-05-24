@@ -1,7 +1,7 @@
 // 2-Point Discrimination Wheel — parametric n-gon, COUNTERclockwise order + split thickness
 // Includes badge/lanyard through-hole between 0 mm and 2 mm
 
-distances_mm       = is_undef(distances_mm) ? [0,2,3,4,5,6,7,8] : distances_mm;
+distances_mm       = is_undef(distances_mm) ? [0,9,10,11,12,13,14,15] : distances_mm;
 
 // --- geometry ---
 outer_flat_to_flat = is_undef(outer_flat_to_flat) ? 40 : outer_flat_to_flat;
