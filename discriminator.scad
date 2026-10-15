@@ -1,5 +1,5 @@
-// 2-Point Discrimination Wheel — parametric n-gon, COUNTERclockwise order + split thickness
-// Includes badge/lanyard through-hole between 0 mm and 2 mm
+// 2-Point Discrimination Wheel - parametric n-gon, COUNTERclockwise order + split thickness
+// Keyhole attachable preset with recessed, widened labels.
 
 distances_mm       = is_undef(distances_mm) ? [0,2,3,4,5,6,7,8] : distances_mm;
 
@@ -25,8 +25,6 @@ thumb_depth   = is_undef(thumb_depth) ? .75 : thumb_depth;
 // --- lanyard / badge hole ---
 lanyard_hole_d      = is_undef(lanyard_hole_d) ? 3.5 : lanyard_hole_d;
 lanyard_hole_inset  = is_undef(lanyard_hole_inset) ? 3.35 : lanyard_hole_inset;
-// larger inset = farther inward from the octagon corner
-// 5.0 should place it slightly inside the corner between 0 and 2 mm
 
 // optional
 chamfer = is_undef(chamfer) ? 0.8 : chamfer;
@@ -35,7 +33,6 @@ $fn = is_undef($fn) ? 72 : $fn;
 function apothem(across_flats,n)=across_flats/2;
 function circ_radius(across_flats,n)=across_flats/(2*cos(180/n));
 
-// Use BODY thickness for anything “top referenced”
 function total_thickness()=body_thickness + max(chamfer,0);
 
 module polygon_plate(n, across_flats, thk){
@@ -98,10 +95,6 @@ module thumb_well_top(){
 module lanyard_corner_hole(distances){
   n = len(distances);
   R = circ_radius(outer_flat_to_flat,n);
-
-  // For default [0,2,3,4,5,6,7,8]:
-  // distance[0] is at 22.5 degrees, distance[1] is at 67.5 degrees,
-  // so the corner between 0 and 2 mm is at 45 degrees.
   ang = 360 / n;
 
   translate([(R - lanyard_hole_inset) * cos(ang),
@@ -116,34 +109,60 @@ module rounded_stroke(x1,y1,x2,y2,r){
     translate([x2,y2]) circle(r=r,$fn=24);
   }
 }
+
 module segment_digit(d,w,h,t){
-  r=t/2; x=w/2-r; y=h/2-r; ym=t*.18;
+  r=t/2;
+  x=w/2-r;
+  y=h/2-r;
+  ym=t*.18;
+
   union(){
-    if(d==0 || d==2 || d==3 || d==5 || d==6 || d==7 || d==8 || d==9) rounded_stroke(-x,y,x,y,r);
-    if(d==2 || d==3 || d==4 || d==5 || d==6 || d==8 || d==9) rounded_stroke(-x,0,x,0,r);
-    if(d==0 || d==2 || d==3 || d==5 || d==6 || d==8 || d==9) rounded_stroke(-x,-y,x,-y,r);
-    if(d==0 || d==4 || d==5 || d==6 || d==8 || d==9) rounded_stroke(-w/2+r,ym,-w/2+r,y,r);
-    if(d==0 || d==2 || d==6 || d==8) rounded_stroke(-w/2+r,-y,-w/2+r,-ym,r);
-    if(d==0 || d==1 || d==2 || d==3 || d==4 || d==7 || d==8 || d==9) rounded_stroke(w/2-r,ym,w/2-r,y,r);
-    if(d==0 || d==1 || d==3 || d==4 || d==5 || d==6 || d==7 || d==8 || d==9) rounded_stroke(w/2-r,-y,w/2-r,-ym,r);
+    if(d==1)
+      rounded_stroke(0,-y,0,y,r);
+    if(d==0 || d==2 || d==3 || d==5 || d==6 || d==7 || d==8 || d==9)
+      rounded_stroke(-x,y,x,y,r);
+    if(d==2 || d==3 || d==4 || d==5 || d==6 || d==8 || d==9)
+      rounded_stroke(-x,0,x,0,r);
+    if(d==0 || d==2 || d==3 || d==5 || d==6 || d==8 || d==9)
+      rounded_stroke(-x,-y,x,-y,r);
+    if(d==0 || d==4 || d==5 || d==6 || d==8 || d==9)
+      rounded_stroke(-w/2+r,ym,-w/2+r,y,r);
+    if(d==0 || d==2 || d==6 || d==8)
+      rounded_stroke(-w/2+r,-y,-w/2+r,-ym,r);
+    if(d==0 || d==2 || d==3 || d==4 || d==7 || d==8 || d==9)
+      rounded_stroke(w/2-r,ym,w/2-r,y,r);
+    if(d==0 || d==3 || d==4 || d==5 || d==6 || d==7 || d==8 || d==9)
+      rounded_stroke(w/2-r,-y,w/2-r,-ym,r);
   }
 }
+
 module label_number(value){
-  h=label_size; w=label_size*.48*label_width; t=label_size*.18; gap=label_size*.14;
-  if(value < 10) segment_digit(value,w,h,t);
-  else {
-    tens=floor(value/10); ones=value-tens*10;
+  h=label_size;
+  w=label_size*.48*label_width;
+  t=label_size*.18;
+  gap=label_size*.14;
+
+  if(value < 10){
+    segment_digit(value,w,h,t);
+  } else {
+    tens=floor(value/10);
+    ones=value - tens*10;
     translate([-w/2-gap/2,0]) segment_digit(tens,w,h,t);
-    translate([w/2+gap/2,0]) segment_digit(ones,w,h,t);
+    translate([ w/2+gap/2,0]) segment_digit(ones,w,h,t);
   }
 }
+
 module edge_numbers_recess(distances,a){
   n=len(distances);
   for(i=[0:n-1]){
     angN=+360*(i+0.5)/n;
-    translate([(label_radial*a)*cos(angN),(label_radial*a)*sin(angN),body_thickness-label_depth])
+
+    translate([(label_radial*a)*cos(angN),
+               (label_radial*a)*sin(angN),
+               body_thickness - label_depth])
       rotate([0,0,angN-90])
-        linear_extrude(height=label_depth+0.02) label_number(distances[i]);
+        linear_extrude(height=label_depth + 0.02)
+          label_number(distances[i]);
   }
 }
 
@@ -175,7 +194,8 @@ module discriminator(distances){
     wheel_solid(distances);
     thumb_well_top();
     lanyard_corner_hole(distances);
-    edge_numbers_recess(distances,apothem(outer_flat_to_flat,n));
+    edge_numbers_recess(distances, apothem(outer_flat_to_flat,n));
   }
 }
+
 discriminator(distances_mm);
