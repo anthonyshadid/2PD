@@ -505,25 +505,28 @@
       <main class="card generator-card" id="generator">
         <section class="intro">
           <div class="subtitle">
-            We’re making 2-point discrimination devices more accessible, affordable, and customizable through open-source, 3D-printable designs. Download preset STL wheels instantly, or create your own below.
+            We’re making 2-point discrimination devices more accessible, affordable, and customizable through open-source, 3D-printable designs. Download preset STL files instantly, or create your own below.
           </div>
         </section>
 
         <div class="preset-downloads" aria-label="preset downloads">
           <div class="title">
-            <span>Preset Wheels </span>
+            <span>Preset Files</span>
           </div>
 
-          <a class="preset-btn" href="/static/presets/attachables/fine_preset6%20keyhole.stl" download>
+          <a class="preset-btn" href="/static/presets/attachables/fine_preset7%20keyhole.stl" download>
             Fine (0–8mm)
           </a>
 
-          <a class="preset-btn" href="/static/presets/attachables/broad_preset6%20keyhole.stl" download>
-            Broad (0–15mm)
+          <a class="preset-btn" href="/static/presets/attachables/broad_preset7%20keyhole.stl" download>
+            Broad (9–15mm)
+          </a>
+          <a class="preset-btn" href="/static/presets/attachables/2pd_dualsheath.stl" download>
+            Protective Case (Fine + Broad)
           </a>
         </div>
 
-        <label for="distances" style="margin-top:18px;">Custom Wheel</label>
+        <label for="distances" style="margin-top:18px;">Custom Distances</label>
         <div class="input-wrap">
           <input
             id="distances"
@@ -559,11 +562,11 @@
       <aside class="card about-panel" id="about">
       
         <h1 class="about-title">2PD Generator</h1>
-        <div class="about-sub">Version 1.0</div>
+        <div class="about-sub">Version 1.3</div>
       
         <h2>About</h2>
         <p>
-          2PD Generator is a simple tool that creates a printable wheel for two-point discrimination testing. Download one of our presets, or enter 8 distances (0-17 mm) and generate your own!
+          2PD Generator is a simple tool that creates a 3D-printable two-point discrimination device. Download one of our presets, or enter 8 distances (0-17 mm) and generate your own!
         </p>
         <p>
           This project was created by Anthony Shadid and Keyvon Rashidi. We created the 3D model and built this website to make these tools more accessible, customizable, and easy to use.
@@ -580,7 +583,7 @@
           • Tip: distances should progressively increase for easy clinical use<br>
           • Click “Generate Custom STL”<br>
           • Download the file<br>
-          • 3D-print the wheel (see printing guide)
+          • 3D-print the device (see printing guide)
         </p>
 
         <h2>Printing Guide</h2>
@@ -602,17 +605,15 @@
 
         <h2>Model Parameters</h2>
         <p>
-          • Wheel radius: 35 mm<br>
-          • Hub radius: 14 mm<br>
-          • Thickness: 3 mm<br>
-          • Tip radius: 0.7 mm<br>
-          • Tip length: 3 mm<br>
-          • Facets: 48
-        </p>
-
-        <h2>Validation &amp; Accuracy</h2>
-        <p>
-          Distances are modeled directly from your inputs. Final printed distances may vary depending on printer calibration and settings. Verify with calipers if accuracy is important.
+          • Octagonal body: 40 mm flat-to-flat<br>
+          • Body thickness: 3 mm<br>
+          • Prong length: 7 mm<br>
+          • Prong base diameter: 3 mm<br>
+          • Hub recess diameter: 17 mm<br>
+          • Keyhole diameter: 3.5 mm<br>
+          • Fine preset overall dimensions: 52.52 × 51.94 × 3.00 mm<br>
+          • Broad preset overall dimensions: 55.19 × 54.62 × 3.00 mm<br>
+          • Protective case overall dimensions: 58.48 × 58.98 × 10.90 mm
         </p>
 
         <h2>FAQ</h2>
